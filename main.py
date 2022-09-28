@@ -20,38 +20,8 @@ B2 = [[0.23, 0.0],
 B3 = [[0.2, 0.1],
       [0.1, 0.3]]
 
-# X = (x, y)
-#
-# M = (mx, my)
-#
-# B = [[M{(x-mx)*(x-mx)}, M{(x-mx)*(y-my)}],
-#      [M{(y-my)*(x-mx)}, M{(y-my)*(y-my))}]]
-
 n = 2
 N = 200
-
-# lab 3
-H = [[0, 1, 0, 0, 0, 0, 0, 1, 0],
-     [0, 1, 0, 0, 0, 0, 0, 1, 0],
-     [0, 1, 0, 0, 0, 0, 0, 1, 0],
-     [0, 1, 0, 0, 0, 0, 0, 1, 0],
-     [0, 1, 1, 1, 1, 1, 1, 1, 0],
-     [0, 1, 0, 0, 0, 0, 0, 1, 0],
-     [0, 1, 0, 0, 0, 0, 0, 1, 0],
-     [0, 1, 0, 0, 0, 0, 0, 1, 0],
-     [0, 1, 0, 0, 0, 0, 0, 1, 0]]
-
-T = [[1, 1, 1, 1, 1, 1, 1, 1, 1],
-     [0, 0, 0, 0, 1, 0, 0, 0, 0],
-     [0, 0, 0, 0, 1, 0, 0, 0, 0],
-     [0, 0, 0, 0, 1, 0, 0, 0, 0],
-     [0, 0, 0, 0, 1, 0, 0, 0, 0],
-     [0, 0, 0, 0, 1, 0, 0, 0, 0],
-     [0, 0, 0, 0, 1, 0, 0, 0, 0],
-     [0, 0, 0, 0, 1, 0, 0, 0, 0],
-     [0, 0, 0, 0, 1, 0, 0, 0, 0], ]
-#####
-
 
 # lab 1
 def generate_vectors(A, M, n, N):
@@ -94,6 +64,7 @@ def rateB(x, M):
     return B
 
 #lab 2
+# фугкция определения вектора к классу среди нескольких классов (Байес)
 def BayeslassificatorB(x, arrM, arrB, L):
     # создать матрицу истиности для dij и записывать true, если d больше либо 0, иначе false
     # строка со всеми true и будет определять класс своим индексом
@@ -148,8 +119,12 @@ def BayeslassificatorB(x, arrM, arrB, L):
             if (table[i] == np.ones(len(table)).astype(bool)).all():
                 return i
 
-
+# функция возвращает график(маасив х, массив у) Байесовской границы для одинаковых В
 def BayesBorderSampleB(m1, m2, b, L):
+    # исходя из уравнения dij = (Mi-Mj) * inv(B) * (x, y) - 0.5(Mi+Mj)*inv(B)(Mi-Mj) + Ln( P(i)/P(j) )
+    # получаем 0 = (a, b)*(x, y) + (d) + ln => [(d) + ln = c] => ax + by + c = 0
+    # вырахаем у через х --> получили график границы
+    # в функции просто зашита формула dij и по ней расчитан график
     difM = np.reshape(m1, (1, 2)) - np.reshape(m2, (1, 2))
     sumM = np.reshape(m1, (1, 2)) + np.reshape(m2, (1, 2))
     tmp1 = np.matmul(sumM, np.linalg.inv(b))
@@ -161,15 +136,16 @@ def BayesBorderSampleB(m1, m2, b, L):
     y = k*x + c
     return x, y
 
-
+# интегральная функция нормального распределения через функцию ошибки
 def Phi(x):
     return 0.5*(1 + erf(x/np.sqrt(2)))
 
-
+# обратная интегральная функция нормального распределения через обратную функцию ошибки
 def invPhi(x):
     return np.sqrt(2)*erfinv(2*x-1)
 
-
+# подаются 2 класса с одинаковыми В
+# считаются теоретические вероятности ошибочной классификации
 def p_error(m1, m2, b):
     difM = np.reshape(m1, (1, 2)) - np.reshape(m2, (1, 2))
     MahalnobisDistant = np.reshape(np.matmul(np.matmul(difM, b), np.transpose(difM)), (1,))
@@ -178,8 +154,18 @@ def p_error(m1, m2, b):
     p[1] = Phi(-0.5*np.sqrt(MahalnobisDistant[0]))
     return p
 
-
+# функция возвращает график(маасив х, массив у) Байесовской границы для разных В
 def BayesBorderDifferenceB(m1, m2, b1, b2, x):
+    # исходя из уравнения dij = (x,y) * inv(Bj-Bi) * (x,y) + 2( Mi*inv(Bi)-Mj*inv(Bj) )*(x,y) + Ln(|inv(Bi)|/|inv(Bj)|)+
+    # + 2Ln( P(i)/P(j) ) - Mi*inv(Bi)*Mi + Mj*inv(Bj)*Mj
+    # после раскрытия всего получим
+    # получаем 0 = (x, y)*({a, b}, {c, d})*(x, y) + (e, f)*x + g =>
+    # ax^2 + (b+c)xy + dy^2 + ex + fy + g = 0 - это кривая второго порядка(параболла/эллипс/гипербола)
+    # решаем квадратное уравнение относительно у
+    # ищем дискриминант D
+    # получим y1 = (-(c+b)x + f + sqrt(D))/2d
+    # получим y2 = (-(c+b)x + f - sqrt(D))/2d
+    # получили уравнения двух веток для графика. Готово.
     divB = math.log(np.linalg.det(b1)/np.linalg.det(b2))
     dist1 = np.matmul(np.matmul(np.reshape(m1, (1, 2)), np.linalg.inv(b1)), np.reshape(m1, (2, 1)))
     dist2 = np.matmul(np.matmul(np.reshape(m2, (1, 2)), np.linalg.inv(b2)), np.reshape(m2, (2, 1)))
@@ -194,7 +180,8 @@ def BayesBorderDifferenceB(m1, m2, b1, b2, x):
     y2 = (-(a[1][0] + a[0][1]) * x - b[1] - np.sqrt(D)) / (2*a[1][1])
     return x, y1, y2
 
-
+# функция находит порог лямбда для минимаксного классификатора с точностью не больше Е
+# точно вычислить невозможно, так как основная функция не является стандартной, поэтому ищется приблизительное значение
 def findL(m1, m2, b, c0, c1, E):
     L = c1 / c0
     difM = np.reshape(m1, (1, 2)) - np.reshape(m2, (1, 2))
@@ -211,18 +198,22 @@ def findL(m1, m2, b, c0, c1, E):
             Phi(((np.log(L * c0 / c1)) - 0.5 * p[0]) / np.sqrt(p[0]))
     return L
 
+# Минимаксный классификатор
+# пользуемся тем, что он является Байессовским при определенных соотношениях P(0) и P(1)
 def classificatorMinMax(x, m1, m2, b, c0, c1):
     L = findL(m1, m2, b, c0, c1, 0.000001)
     arrM = [m1, m2]
     arrB = [b, b]
     return BayeslassificatorB(x, arrM, arrB, L)
 
-
+# граница минимаксного классификатора
+# пользуемся тем, что он является Байессовским, поэтому строим границу как для Байесовского
 def borderMinMax(m1, m2, b, c0, c1):
     L = findL(m1, m2, b, c0, c1, 0.000001)
     return BayesBorderSampleB(m1, m2, b, L)
 
-
+# Нейман-Пирс классификатор
+# просто происходит сравнение f(x|1)/f(x|0) и лямбды, из чего вектор относится к тому или иному классу
 def classificatorNP(x, p0, m1, m2, b):
     tmp0 = np.matmul(np.reshape(m1, (1, 2)), np.linalg.inv(b))
     distMahal = np.matmul(tmp0, np.reshape(m2, (2, 1)))
@@ -237,7 +228,12 @@ def classificatorNP(x, p0, m1, m2, b):
     if (y > l): return 1
     return 0
 
-
+# граница Неймана-Пирса
+# распишем f(x|1)/f(x|0) и сравним с лямбдой
+# лямбда рассчитывается из методички как e^( -0.5*r(M0, M1) + sqrt( r(M0, M1) )*invPhi(1-p0) ), где r(M0, M1) - расстояние Махаланобиса
+# f(x|1)/f(x|0) = sqrt( |B0|/|B1|) * e^( -0.5*[(x-M1)*inv(B1)(x-M1) - (x-M0)*inv(B0)(x-M0)] )
+# решая f(x|1)/f(x|0) = лямбда получим уравнение вида: (x,y)*(a,b) + (c,d)*(x,y) + t = 0
+# выразим у через х и получим: y = (-(a+c) * x - t)/(b+d)
 def borderNPclass(p0, m1, m2, b):
     tmp1 = np.matmul(np.reshape(m1, (1, 2)), np.linalg.inv(b))
     distMahal = np.matmul(tmp1, np.reshape(m2, (2, 1)))
@@ -267,7 +263,7 @@ def classificationError(x, arrM, arrB, p, className, names):
         n = BayeslassificatorB(x[:, i], arrM, arrB, 1)
         if className != num2Classname(n, names):
             absError += 1
-    print(f"amount of not {className} is {absError}")
+    print(f"amount of not {className} is {int(absError)}")
     absError = absError/sizeX[1]
     e = np.sqrt((1-p)/(sizeX[1]*absError))
     return absError, e
