@@ -267,7 +267,7 @@ def classificationError(x, arrM, arrB, p, className, names):
         n = BayeslassificatorB(x[:, i], arrM, arrB, 1)
         if className != num2Classname(n, names):
             absError += 1
-    print(f"amount of not {className} is {int(absError)}")
+    print(f"amount of {className} in other class is {int(absError)}")
     absError = absError/sizeX[1]
     e = np.sqrt((1-p)/(sizeX[1]*absError))
     return absError, e
@@ -505,48 +505,48 @@ if __name__ == '__main__':
     plt.legend(["point", "class Red", "class Green", "class Blue", "Border RedvsGreen", "Border RedvsBlue", "Border GreenvsBlue"])
     show()
 
-    print(f"\n\n\n\n\nLab4:\n")
-    # lab 4
-    A1 = calcMatrixA(B1)
-    A2 = calcMatrixA(B2)
-
-    x3 = generate_vectors(A1, M1, n, N)
-    y3 = generate_vectors(A2, M2, n, N)
-    z3 = generate_vectors(A1, M2, n, N)
-    # task 4.1
-    # Классификатор, максимизирующий критерий Фишера
-    W1, wn1 = calcFishersParametrs(M1, M2, B1, B1)
-    W2, wn2 = calcFishersParametrs(M1, M2, B1, B2)
-
-    t3 = np.arange(-100, 100, 0.1)
-    dBayess = BayesBorderSampleB(M1, M2, B1, 1)
-    dFisher = borderLinClassificator(W1, wn1, t3)
-
-    dBayess2 = BayesBorderDifferenceB(M1, M2, B1, B2, t3)
-    dFisher2 = borderLinClassificator(W2, wn2, t3)
-
-    fig5 = plt.figure(figsize=(16, 7))
-    fig5 = printClassificator(fig5, 121, x3, z3, dBayess, dFisher, "Fisher")
-    fig5 = printClassificator(fig5, 122, x3, y3, dBayess2, dFisher2, "Fisher")
-
-
-    # task 4.2
-    # Классификатор, минимизирующий СКО
-    Wmse1 = calcMSEParameters(x3, z3)
-    dMSE1 = borderLinClassificator(Wmse1[0:2], Wmse1[-1], t3)
-
-    Wmse2 = calcMSEParameters(x3, y3)
-    dMSE2 = borderLinClassificator(Wmse2[0:2], Wmse1[-1], t3)
-
-    fig6 = plt.figure(figsize=(16, 7))
-    fig6 = printClassificator(fig6, 121, x3, z3, dBayess, dMSE1, "MSE")
-    fig6 = printClassificator(fig6, 122, x3, y3, dBayess2, dMSE2, "MSE")
-    # fig6 = printClassificator(fig6, 122, x3, y3, dBayess2, dFisher2, "MSE")
-
-    # task 4.3
-    # Классификатор Роббинса-Монро
-
-    show()
+    # print(f"\n\n\n\n\nLab4:\n")
+    # # lab 4
+    # A1 = calcMatrixA(B1)
+    # A2 = calcMatrixA(B2)
+    #
+    # x3 = generate_vectors(A1, M1, n, N)
+    # y3 = generate_vectors(A2, M2, n, N)
+    # z3 = generate_vectors(A1, M2, n, N)
+    # # task 4.1
+    # # Классификатор, максимизирующий критерий Фишера
+    # W1, wn1 = calcFishersParametrs(M1, M2, B1, B1)
+    # W2, wn2 = calcFishersParametrs(M1, M2, B1, B2)
+    #
+    # t3 = np.arange(-100, 100, 0.1)
+    # dBayess = BayesBorderSampleB(M1, M2, B1, 1)
+    # dFisher = borderLinClassificator(W1, wn1, t3)
+    #
+    # dBayess2 = BayesBorderDifferenceB(M1, M2, B1, B2, t3)
+    # dFisher2 = borderLinClassificator(W2, wn2, t3)
+    #
+    # fig5 = plt.figure(figsize=(16, 7))
+    # fig5 = printClassificator(fig5, 121, x3, z3, dBayess, dFisher, "Fisher")
+    # fig5 = printClassificator(fig5, 122, x3, y3, dBayess2, dFisher2, "Fisher")
+    #
+    #
+    # # task 4.2
+    # # Классификатор, минимизирующий СКО
+    # Wmse1 = calcMSEParameters(x3, z3)
+    # dMSE1 = borderLinClassificator(Wmse1[0:2], Wmse1[-1], t3)
+    #
+    # Wmse2 = calcMSEParameters(x3, y3)
+    # dMSE2 = borderLinClassificator(Wmse2[0:2], Wmse1[-1], t3)
+    #
+    # fig6 = plt.figure(figsize=(16, 7))
+    # fig6 = printClassificator(fig6, 121, x3, z3, dBayess, dMSE1, "MSE")
+    # fig6 = printClassificator(fig6, 122, x3, y3, dBayess2, dMSE2, "MSE")
+    # # fig6 = printClassificator(fig6, 122, x3, y3, dBayess2, dFisher2, "MSE")
+    #
+    # # task 4.3
+    # # Классификатор Роббинса-Монро
+    #
+    # show()
 
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/

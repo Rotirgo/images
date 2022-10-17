@@ -149,7 +149,7 @@ def experimentErrors(expClass, classes, arrP, className, names, pTheoretic):
     for vector in expClass:
         if BinaryClassificator(vector, classes[0], classes[1], arrP[0], arrP[1], names) != className:
             expP += 1
-    print(expP)
+    print(f"amount of inalid vectors {className}: {expP}")
     expP /= len(expClass)
     e = np.sqrt((1-pTheoretic)/(expP*len(expClass)))
     return expP, e
@@ -160,6 +160,8 @@ def findInvalidVector(expClass, classes, arrP, className, names):
     for vector in expClass:
         if BinaryClassificator(vector, classes[0], classes[1], arrP[0], arrP[1], names) != className:
             invalidClass.append(vector)
+    if len(invalidClass) < 1:
+        invalidClass.append(np.zeros_like(expClass[0]))
     return invalidClass
 
 
@@ -215,6 +217,7 @@ if __name__ == '__main__':
 
     errs = calcErrors(vectorsH, vectorsT, 0.5, 0.5)
     print(f"p for class H: {errs[0]:.6f}\np for class T: {errs[1]:.6f}")
+    print("\n")
     errsExperiment = experimentErrors(vectorsH, [vectorsH, vectorsT], [0.5, 0.5], "H", ["H", "T"], errs[0])
     print(f"experiment p for class H: {errsExperiment[0]:.6f}\ne: {errsExperiment[1]*100:.6f}%")
     errsExperimentT = experimentErrors(vectorsT, [vectorsH, vectorsT], [0.5, 0.5], "T", ["H", "T"], errs[1])
