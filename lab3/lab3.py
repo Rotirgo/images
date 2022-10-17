@@ -155,6 +155,14 @@ def experimentErrors(expClass, classes, arrP, className, names, pTheoretic):
     return expP, e
 
 
+def findInvalidVector(expClass, classes, arrP, className, names):
+    invalidClass = []
+    for vector in expClass:
+        if BinaryClassificator(vector, classes[0], classes[1], arrP[0], arrP[1], names) != className:
+            invalidClass.append(vector)
+    return invalidClass
+
+
 def printVectors(vector, fig, pos):
     ax1 = fig.add_subplot(pos, projection='3d')
 
@@ -209,6 +217,11 @@ if __name__ == '__main__':
     print(f"p for class H: {errs[0]:.6f}\np for class T: {errs[1]:.6f}")
     errsExperiment = experimentErrors(vectorsH, [vectorsH, vectorsT], [0.5, 0.5], "H", ["H", "T"], errs[0])
     print(f"experiment p for class H: {errsExperiment[0]:.6f}\ne: {errsExperiment[1]*100:.6f}%")
+    errsExperimentT = experimentErrors(vectorsT, [vectorsH, vectorsT], [0.5, 0.5], "T", ["H", "T"], errs[1])
+    print(f"experiment p for class T: {errsExperimentT[0]:.6f}\ne: {errsExperimentT[1] * 100:.6f}%")
+
+    invalidH = findInvalidVector(vectorsH, [vectorsH, vectorsT], [0.5, 0.5], "H", ["H", "T"])
+    invalidT = findInvalidVector(vectorsT, [vectorsH, vectorsT], [0.5, 0.5], "T", ["H", "T"])
 
     fig = plt.figure(figsize=(10, 10))
     fig = printVectors(H, fig, 221)
@@ -220,11 +233,13 @@ if __name__ == '__main__':
     fig1 = printVectors(w, fig1, 121)
     fig1 = printVectors(-w, fig1, 122)
 
-
-
-    # ax2 = fig.add_subplot(222, projection='3d')
-    # ax3 = fig.add_subplot(223, projection='3d')
-    # ax4 = fig.add_subplot(224, projection='3d')
+    fig2 = plt.figure(figsize=(10, 10))
+    fig2 = printVectors(H, fig2, 321)
+    fig2 = printVectors(T, fig2, 322)
+    fig2 = printVectors(vectorsH[0], fig2, 323)
+    fig2 = printVectors(vectorsT[0], fig2, 324)
+    fig2 = printVectors(invalidH[0], fig2, 325)
+    fig2 = printVectors(invalidT[0], fig2, 326)
     show()
 
 

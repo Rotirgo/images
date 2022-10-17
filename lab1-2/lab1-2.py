@@ -2,6 +2,8 @@
 
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+import copy
+
 import numpy as np
 import matplotlib.pyplot as plt
 from numpy import double
@@ -13,10 +15,10 @@ var = 1
 M1 = [0, 0]
 M2 = [1, 1]
 M3 = [-1, 1]
-B1 = [[0.12, 0.0],
+B1 = [[0.11, 0.0],
       [0.0, 0.19]]
-B2 = [[0.23, 0.0],
-      [0.0, 0.17]]
+B2 = [[0.23, 0.01],
+      [0.02, 0.17]]
 B3 = [[0.2, 0.1],
       [0.1, 0.3]]
 
@@ -215,8 +217,9 @@ def borderMinMax(m1, m2, b, c0, c1):
 # Нейман-Пирс классификатор
 # просто происходит сравнение f(x|1)/f(x|0) и лямбды, из чего вектор относится к тому или иному классу
 def classificatorNP(x, p0, m1, m2, b):
-    tmp0 = np.matmul(np.reshape(m1, (1, 2)), np.linalg.inv(b))
-    distMahal = np.matmul(tmp0, np.reshape(m2, (2, 1)))
+    difM = np.reshape(m1, (1, 2)) - np.reshape(m2, (1, 2))
+    tmp0 = np.matmul(difM, np.linalg.inv(b))
+    distMahal = np.matmul(tmp0, np.transpose(difM))
     ro = distMahal[0][0]
     lymbda = -0.5 * ro + np.sqrt(ro) * invPhi(1 - p0)
     l = np.exp(lymbda)
@@ -235,8 +238,9 @@ def classificatorNP(x, p0, m1, m2, b):
 # решая f(x|1)/f(x|0) = лямбда получим уравнение вида: (x,y)*(a,b) + (c,d)*(x,y) + t = 0
 # выразим у через х и получим: y = (-(a+c) * x - t)/(b+d)
 def borderNPclass(p0, m1, m2, b):
-    tmp1 = np.matmul(np.reshape(m1, (1, 2)), np.linalg.inv(b))
-    distMahal = np.matmul(tmp1, np.reshape(m2, (2, 1)))
+    difM = np.reshape(m1, (1, 2)) - np.reshape(m2, (1, 2))
+    tmp1 = np.matmul(difM, np.linalg.inv(b))
+    distMahal = np.matmul(tmp1, np.transpose(difM))
     ro = distMahal[0][0]
     lymbda = -0.5*ro + np.sqrt(ro)*invPhi(1-p0)
     difM = np.reshape(m1, (2, 1)) - np.reshape(m2, (2, 1))
@@ -272,6 +276,71 @@ def classificationError(x, arrM, arrB, p, className, names):
 def amountVectorsWithError(e, p, expErr):
     N = np.ceil((1-p)/(expErr*e*e))
     return N
+
+
+# lab4
+def calcFishersParametrs(m0, m1, b0, b1):
+    difM = np.reshape(m1, (2, 1)) - np.reshape(m0, (2, 1))
+    sumB = 0.5*(np.array(b0) + np.array(b1))
+    W = np.matmul(np.linalg.inv(sumB), difM)  # size(2, 1)
+    D0 = np.matmul(np.matmul(np.transpose(W), b0), W)
+    D1 = np.matmul(np.matmul(np.transpose(W), b1), W)
+    D0 = D0[0, 0]
+    D1 = D1[0, 0]
+    tmp = np.matmul(np.transpose(difM), np.linalg.inv(sumB))
+    tmp = np.matmul(tmp, (D1*np.reshape(m0, (2, 1)) + D0*np.reshape(m1, (2, 1))))
+    wn = -tmp[0, 0]/(D0 + D1)
+    return np.reshape(W, (2, )), wn
+
+
+def calcMSEParameters(class0, class1):
+    W = 0
+    size1 = np.shape(class1)
+    size0 = np.shape(class0)
+    z1Size = ((size1[0] + 1), size1[1])
+    z0Size = ((size0[0] + 1), size0[1])
+    z1 = np.ones(z1Size)
+    z0 = np.ones(z0Size)
+    z1[0:size1[0], 0:size1[1]] = class1
+    z0[0:size0[0], 0:size0[1]] = class0
+    z0 = -1*z0
+
+    resSize = (3, (size1[1] + size0[1]))
+    z = np.ones(resSize)
+    z[0:3, 0:z1Size[1]] = z1
+    z[0:3, z1Size[1]:resSize[1]] = z0  # size(3, 400)
+
+    tmp = np.linalg.inv(np.matmul(z, np.transpose(z)))
+    R = np.ones((resSize[1], 1))
+    W = np.matmul(np.matmul(tmp, z), R)
+    return np.reshape(W, (3, ))
+
+
+
+
+def borderLinClassificator(W, wn, x):
+    # 0 = W0*x + W1*y + wn -> y = -(W0*x + wn)/W1
+    print(W)
+    y = -(W[0]*x + wn)/W[1]
+    return x, y
+
+
+def printClassificator(fig, pos, class0, class1, dBayess, dAnother, nameAnotherBorder):
+    fig.add_subplot(pos)
+    plt.xlim(-1.5, 2.5)
+    plt.ylim(-1.5, 2.5)
+    # plt.xlim(-30, 30)
+    # plt.ylim(-30, 30)
+    plt.plot(class0[0], class0[1], 'r+')
+    plt.plot(class1[0], class1[1], 'bx')
+    plt.plot(dAnother[0], dAnother[1], 'm-')
+    for i in range(1, len(dBayess)):
+        plt.plot(dBayess[0], dBayess[i], 'y.')
+    plt.legend(["class Red", "class Blue", nameAnotherBorder+" border", "Bayess border"])
+    return fig
+
+
+
 
 
 def print_hi(name):
@@ -393,8 +462,8 @@ if __name__ == '__main__':
     # x2, y2 и z2 - байессовская граница
     # обрезание картинки производилось исходя из полных графиков
     # посмотрел примерные координаты пересечения и подставил их в ограничения t1 и t2
-    t1 = np.arange(-0.081026, 3, 0.000001)
-    t2 = np.arange(-3, -0.081026, 0.000001)
+    t1 = np.arange(-0.0996792, 3, 0.000001)
+    t2 = np.arange(-3, -0.0996139, 0.000001)
     dxy = BayesBorderDifferenceB(M1, M2, B1, B2, t1)
     dxz = BayesBorderDifferenceB(M1, M3, B1, B3, t2)
     dyz = BayesBorderDifferenceB(M2, M3, B2, B3, t1)
@@ -436,15 +505,48 @@ if __name__ == '__main__':
     plt.legend(["point", "class Red", "class Green", "class Blue", "Border RedvsGreen", "Border RedvsBlue", "Border GreenvsBlue"])
     show()
 
+    print(f"\n\n\n\n\nLab4:\n")
+    # lab 4
+    A1 = calcMatrixA(B1)
+    A2 = calcMatrixA(B2)
 
-    # для двух классов определить экспериментально вероятности ошибочной классификации
-    # определить размер N чтобы погрешность была 5%
+    x3 = generate_vectors(A1, M1, n, N)
+    y3 = generate_vectors(A2, M2, n, N)
+    z3 = generate_vectors(A1, M2, n, N)
+    # task 4.1
+    # Классификатор, максимизирующий критерий Фишера
+    W1, wn1 = calcFishersParametrs(M1, M2, B1, B1)
+    W2, wn2 = calcFishersParametrs(M1, M2, B1, B2)
+
+    t3 = np.arange(-100, 100, 0.1)
+    dBayess = BayesBorderSampleB(M1, M2, B1, 1)
+    dFisher = borderLinClassificator(W1, wn1, t3)
+
+    dBayess2 = BayesBorderDifferenceB(M1, M2, B1, B2, t3)
+    dFisher2 = borderLinClassificator(W2, wn2, t3)
+
+    fig5 = plt.figure(figsize=(16, 7))
+    fig5 = printClassificator(fig5, 121, x3, z3, dBayess, dFisher, "Fisher")
+    fig5 = printClassificator(fig5, 122, x3, y3, dBayess2, dFisher2, "Fisher")
 
 
-    # lab 3
-    # task 1.5
-    # ???
+    # task 4.2
+    # Классификатор, минимизирующий СКО
+    Wmse1 = calcMSEParameters(x3, z3)
+    dMSE1 = borderLinClassificator(Wmse1[0:2], Wmse1[-1], t3)
 
-    # task 2.4
+    Wmse2 = calcMSEParameters(x3, y3)
+    dMSE2 = borderLinClassificator(Wmse2[0:2], Wmse1[-1], t3)
+
+    fig6 = plt.figure(figsize=(16, 7))
+    fig6 = printClassificator(fig6, 121, x3, z3, dBayess, dMSE1, "MSE")
+    fig6 = printClassificator(fig6, 122, x3, y3, dBayess2, dMSE2, "MSE")
+    # fig6 = printClassificator(fig6, 122, x3, y3, dBayess2, dFisher2, "MSE")
+
+    # task 4.3
+    # Классификатор Роббинса-Монро
+
+    show()
+
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
