@@ -596,6 +596,7 @@ if __name__ == '__main__':
 
     xz = np.transpose(xz)
     xy = np.transpose(xy)
+    print(np.shape(xz))
 
     # Z = np.concatenate((Z0, Z1), axis=1)
 
@@ -606,21 +607,20 @@ if __name__ == '__main__':
         arrBorders1.append(tmpY[1])
 
     fig7 = plt.figure(figsize=(16, 7))
-    fig7 = printClassificator(fig7, 121, x3, z3, arrBorders1[0:10], arrBorders1[0], "R", "--")
+    fig7 = printClassificator(fig7, 121, x3, z3, arrBorders1[0:], arrBorders1[0], "R", "--")
     resd1 = [arrBorders1[0], arrBorders1[-1]]
     fig7 = printClassificator(fig7, 122, x3, z3, resd1, dBayess, "R", "--")
-
 
     Wrobbins2 = calcACRParameters(xy)
     arrBorders2 = [t3]
     for w in Wrobbins2:
-        tmpY = borderLinClassificator(w[0:2], w[-1], t3, "Robbins-Monro with sample B")
+        tmpY = borderLinClassificator(w[0:2], w[-1], t3, "Robbins-Monro with different B")
         arrBorders2.append(tmpY[1])
 
     fig8 = plt.figure(figsize=(16, 7))
-    fig8 = printClassificator(fig8, 121, x3, y3, arrBorders2[0:10], arrBorders2[0], "R", "--")
+    fig8 = printClassificator(fig8, 121, x3, y3, arrBorders2[0:], arrBorders2[0], "Rob", "--")
     resd2 = [arrBorders2[0], arrBorders2[-1]]
-    fig8 = printClassificator(fig8, 122, x3, y3, resd2, dBayess, "R", "--")
+    fig8 = printClassificator(fig8, 122, x3, y3, resd2, dBayess, "Rob", "--")
 
     # выбор начального W не влияет на скорость сходимости
     # последовательность: 0.5<b<=1 при большей степени коэфф 1/k^b становится меньше -> сходится плавнее, но медленней

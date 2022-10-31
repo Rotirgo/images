@@ -171,9 +171,12 @@ def experimentErrors(expClass, classes, arrP, className, names, pTheoretic):
     for vector in expClass:
         if BinaryClassificator(vector, classes[0], classes[1], arrP[0], arrP[1], names) != className:
             expP += 1
-    print(f"amount of inalid vectors {className}: {expP}")
+    print(f"amount of invalid vectors {className}: {expP}")
     expP /= len(expClass)
-    e = np.sqrt((1 - pTheoretic) / (expP * len(expClass)))
+    if expP != 0:
+        e = np.sqrt((1 - pTheoretic) / (expP * len(expClass)))
+    else:
+        e = 0
     return expP, e
 
 
@@ -262,7 +265,7 @@ if __name__ == '__main__':
     fig0 = plt.figure(figsize=(10, 10))
     plt.plot(x, scipy.stats.norm.pdf(x, arrM[0], np.sqrt(arrD[0])))
     plt.plot(x, scipy.stats.norm.pdf(x, arrM[1], np.sqrt(arrD[1])))
-    plt.axvline(x=limbda, c='y')
+    # plt.axvline(x=limbda, c='y')
 
     fig = plt.figure(figsize=(10, 10))
     fig = printVectors(H, fig, 221)
