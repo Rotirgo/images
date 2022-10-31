@@ -66,7 +66,7 @@ if __name__ == '__main__':
     x5 = generate_vectors(A5, M5, n, N)
 
     data = np.concatenate((x1, x2, x3, x4, x5), axis=1)
-    print(np.shape(data), data)
+    # print(np.shape(data), data)
 
     fig1 = plt.figure(figsize=(10, 10))
     plt.xlim(-2, 2)

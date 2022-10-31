@@ -280,7 +280,7 @@ def amountVectorsWithError(e, p, expErr):
     return N
 
 
-# lab5
+# lab4
 def calcFishersParametrs(m0, m1, b0, b1):
     difM = np.reshape(m1, (2, 1)) - np.reshape(m0, (2, 1))
     sumB = 0.5*(np.array(b0) + np.array(b1))
@@ -352,7 +352,7 @@ def borderLinClassificator(W, wn, x, nameClassificator):
     return x, y
 
 
-def printClassificator(fig, pos, class0, class1, dBayess, dAnother, nameAnotherBorder, lineFormat):
+def printClassificator(fig, pos, class0, class1, dBayess, dAnother, nameAnotherBorder, lineFormat, colors):
     fig.add_subplot(pos)
     plt.xlim(-1.5, 2.5)
     plt.ylim(-1.5, 2.5)
@@ -361,9 +361,9 @@ def printClassificator(fig, pos, class0, class1, dBayess, dAnother, nameAnotherB
     plt.plot(class0[0], class0[1], 'r+')
     plt.plot(class1[0], class1[1], 'bx')
     plt.plot(dAnother[0], dAnother[1], 'm-')
-    c = ['r', 'y', 'g', 'c', 'b', 'm']
+    # c = ['r', 'y', 'g', 'c', 'b', 'm']
     for i in range(1, len(dBayess)):
-        plt.plot(dBayess[0], dBayess[i], f'{c[i%6]}{lineFormat}')
+        plt.plot(dBayess[0], dBayess[i], f'{colors[i%len(colors)]}{lineFormat}')
     plt.legend(["class Red", "class Blue", nameAnotherBorder+" border", "Bayess border"])
     return fig
 
@@ -554,8 +554,8 @@ if __name__ == '__main__':
     dFisher2 = borderLinClassificator(W2, wn2, t3, "Fisher with different B")
 
     fig5 = plt.figure(figsize=(16, 7))
-    fig5 = printClassificator(fig5, 121, x3, z3, dBayess, dFisher, "Fisher", ".")
-    fig5 = printClassificator(fig5, 122, x3, y3, dBayess2, dFisher2, "Fisher", "-")
+    fig5 = printClassificator(fig5, 121, x3, z3, dBayess, dFisher, "Fisher", ".", ["y", "y"])
+    fig5 = printClassificator(fig5, 122, x3, y3, dBayess2, dFisher2, "Fisher", "-", ["y", "y"])
 
 
     # task 4.2
@@ -567,8 +567,8 @@ if __name__ == '__main__':
     dMSE2 = borderLinClassificator(Wmse2[0:2], Wmse1[-1], t3, "MSE with different B")
 
     fig6 = plt.figure(figsize=(16, 7))
-    fig6 = printClassificator(fig6, 121, x3, z3, dBayess, dMSE1, "MSE", ".")
-    fig6 = printClassificator(fig6, 122, x3, y3, dBayess2, dMSE2, "MSE", "-")
+    fig6 = printClassificator(fig6, 121, x3, z3, dBayess, dMSE1, "MSE", ".", ["y", "y"])
+    fig6 = printClassificator(fig6, 122, x3, y3, dBayess2, dMSE2, "MSE", "-", ["y", "y"])
     # fig6 = printClassificator(fig6, 122, x3, y3, dBayess2, dFisher2, "MSE")
     show()
 
@@ -606,10 +606,11 @@ if __name__ == '__main__':
         tmpY = borderLinClassificator(w[0:2], w[-1], t3, "Robbins-Monro with sample B")
         arrBorders1.append(tmpY[1])
 
+    c = ['r', 'y', 'g', 'c', 'b', 'm']
     fig7 = plt.figure(figsize=(16, 7))
-    fig7 = printClassificator(fig7, 121, x3, z3, arrBorders1[0:], arrBorders1[0], "R", "--")
+    fig7 = printClassificator(fig7, 121, x3, z3, arrBorders1[0:], arrBorders1[0], "R", "--", c)
     resd1 = [arrBorders1[0], arrBorders1[-1]]
-    fig7 = printClassificator(fig7, 122, x3, z3, resd1, dBayess, "R", "--")
+    fig7 = printClassificator(fig7, 122, x3, z3, resd1, dBayess, "R", "--", c)
 
     Wrobbins2 = calcACRParameters(xy)
     arrBorders2 = [t3]
@@ -618,9 +619,9 @@ if __name__ == '__main__':
         arrBorders2.append(tmpY[1])
 
     fig8 = plt.figure(figsize=(16, 7))
-    fig8 = printClassificator(fig8, 121, x3, y3, arrBorders2[0:], arrBorders2[0], "Rob", "--")
+    fig8 = printClassificator(fig8, 121, x3, y3, arrBorders2[0:], arrBorders2[0], "Rob", "--", c)
     resd2 = [arrBorders2[0], arrBorders2[-1]]
-    fig8 = printClassificator(fig8, 122, x3, y3, resd2, dBayess, "Rob", "--")
+    fig8 = printClassificator(fig8, 122, x3, y3, resd2, dBayess, "Rob", "--", c)
 
     # выбор начального W не влияет на скорость сходимости
     # последовательность: 0.5<b<=1 при большей степени коэфф 1/k^b становится меньше -> сходится плавнее, но медленней
