@@ -280,7 +280,7 @@ def amountVectorsWithError(e, p, expErr):
     return N
 
 
-# lab4
+# lab5
 def calcFishersParametrs(m0, m1, b0, b1):
     difM = np.reshape(m1, (2, 1)) - np.reshape(m0, (2, 1))
     sumB = 0.5*(np.array(b0) + np.array(b1))
