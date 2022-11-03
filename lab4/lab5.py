@@ -1,7 +1,8 @@
+import copy
+
 import numpy as np
 import matplotlib.pyplot as plt
 from skimage.io import imsave, imshow, show, imread
-import math
 
 M1 = [0, 0]
 M2 = [1, 1]
@@ -9,11 +10,17 @@ M3 = [-1, 1]
 M4 = [0, 1]
 M5 = [0, 2]
 
-B1 = [[0.05, 0.0], [0.0, 0.02]]
-B2 = [[0.04, 0.01], [0.01, 0.05]]
-B3 = [[0.02, 0.005], [0.005, 0.05]]
-B4 = [[0.03, -0.01], [0.01, 0.03]]
-B5 = [[0.04, 0.0], [0.0, 0.04]]
+
+B1 = [[0.035, 0.0], [0.0, 0.018]]
+B2 = [[0.015, 0.0], [0.0, 0.03]]
+B3 = [[0.02, 0.0], [0.0, 0.035]]
+B4 = [[0.03, 0.0], [0.0, 0.03]]
+B5 = [[0.035, 0.0], [0.0, 0.025]]
+# B1 = [[0.05, 0.0], [0.0, 0.02]]
+# B2 = [[0.04, 0.01], [0.01, 0.05]]
+# B3 = [[0.02, 0.005], [0.005, 0.05]]
+# B4 = [[0.03, -0.01], [0.01, 0.03]]
+# B5 = [[0.04, 0.0], [0.0, 0.04]]
 
 N = 50
 n = 2
@@ -44,6 +51,95 @@ def calcMatrixA(B):
     return A
 
 
+def d(x, z):
+    dist = np.sum(np.square(x-z))
+    return np.sqrt(dist)
+
+
+Distance = np.vectorize(d, signature='(n),(m)->()')
+
+
+def maxminMethod(vectors):
+    result = copy.copy(vectors)
+    clusters = []
+    arrM = []
+    M_all = vectors.sum(axis=1) / len(vectors[0])
+    result = np.transpose(result)
+
+    distances = Distance(result, M_all)
+    m0 = result[np.argmax(distances)]
+    clusters.append([m0])
+    arrM.append(m0)
+    result = np.delete(result, np.argmax(distances), axis=0)
+
+    distances = Distance(result, m0)
+    m1 = result[np.argmax(distances)]
+    arrM.append(m1)
+    clusters.append([m1])
+    result = np.delete(result, np.argmax(distances), axis=0)
+
+    dtypical = [Distance(m0, m1) / 2]
+    dmin = [dtypical[-1] + 1]
+    legends = ["M(x)", "class 0", "class 1"]
+
+    # distanceTable
+    #             x(0)          x(1)        ...       x(i)        ...       x(N-1)
+    # M(0)      d(M0,x0)     d(M0, x1)      ...     d(M0, xi)     ...    d(M0, x(N-1))
+    # M(1)      d(M1,x0)     d(M1, x1)      ...     d(M1, xi)     ...    d(M1, x(N-1))
+    # ...         ...           ...         ...       ...         ...        ...
+    # M(i)      d(Mi,x0)     d(Mi, x1)      ...     d(Mi, xi)     ...    d(Mi, x(N-1))
+    # ...         ...           ...         ...       ...         ...        ...
+    # M(L-2)  d(M(L-2),x0)  d(M(L-2), x1)   ...   d(M(L-2), xi)   ...   d(M(L-2), x(N-1))
+    while dmin[-1] > dtypical[-1]:
+        distanceTable = []
+        for i in range(0, len(arrM)):
+            distanceTable.append(Distance(result, arrM[i]))
+        # распределить по существующим кластерам
+        l = np.argmin(np.transpose(distanceTable), axis=1)
+        tmp = copy.copy(clusters)
+        for k in range(0, len(result)):
+            tmp[l[k]].append(result[k])
+
+        # отобразить результат
+        # arrFig.append(viewClusters(tmp, arrM))
+        fig0 = plt.figure(figsize=(10, 10))
+        viewClusters(tmp, arrM, fig0, 111, legend=legends)
+        # show()
+
+        # создание нового кластера(если надо)
+        minDistances = np.min(np.transpose(distanceTable), axis=1)
+        M_ = result[np.argmax(minDistances)]
+        dmin.append(np.min(Distance(arrM, M_)))
+        if dmin[-1] > dtypical[-1]:
+            legends.append(f"class {len(arrM)}")
+            arrM.append(M_)
+            clusters.append([M_])
+            result = np.delete(result, np.argmax(minDistances), axis=0)
+            dtypical.append(0)
+            for j in range(0, len(arrM)):
+                # print(f"\t{j}: {Distance(arrM, arrM[j])}")
+                dtypical[-1] += np.sum(Distance(arrM, arrM[j]))
+            dtypical[-1] /= 2*len(arrM)*(len(arrM) - 1)
+    dmin.pop(0)
+    return clusters, dmin, dtypical, arrM
+
+
+def viewClusters(data, arrM, fig, loc, legend):
+    viewData = []
+    for k in range(0, len(data)):
+        viewData.append(np.transpose(data[k]))
+    tmp = np.transpose(arrM)
+
+    fig.add_subplot(loc)
+    plt.xlim(-1.6, 1.6)
+    plt.ylim(-0.6, 2.6)
+    plt.plot(tmp[0], tmp[1], 'ko')
+    c = ['r.', 'b.', 'g.', 'c.', 'm.', 'y.']
+    for i in range(0, len(viewData)):
+        plt.plot(viewData[i][0], viewData[i][1], c[i % len(c)])
+    plt.legend(legend)
+    return fig
+
 def print_hi(name):
     # Use a breakpoint in the code line below to debug your script.
     print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
@@ -66,17 +162,26 @@ if __name__ == '__main__':
     x5 = generate_vectors(A5, M5, n, N)
 
     data = np.concatenate((x1, x2, x3, x4, x5), axis=1)
-    # print(np.shape(data), data)
+    clusters, d_min, d_typical, arrM = maxminMethod(data)
+    print(d_min)
+    print(d_typical)
 
-    fig1 = plt.figure(figsize=(10, 10))
-    plt.xlim(-2, 2)
-    plt.ylim(-1, 3)
+    fig1 = plt.figure(figsize=(16, 7))
+    fig1.add_subplot(121)
+    plt.xlim(-1.6, 1.6)
+    plt.ylim(-0.6, 2.6)
     plt.plot(x1[0], x1[1], 'r.')
     plt.plot(x2[0], x2[1], 'gx')
     plt.plot(x3[0], x3[1], 'b<')
     plt.plot(x4[0], x4[1], 'm*')
     plt.plot(x5[0], x5[1], 'c+')
     plt.legend(["class 1", "class 2", "class 3", "class 4", "class 5"])
+    legs = ["M(x)"]
+    for i in range(0, len(clusters)):
+        legs.append(f"class {i}")
+    viewClusters(clusters, arrM, fig1, 122, legs)
+    # imshow(views[-1])
+
     show()
 
 

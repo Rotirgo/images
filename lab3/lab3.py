@@ -149,8 +149,8 @@ def calcErrors(class0, class1, P0, P1):
     lymbda += np.log(P1 / P0)
     M = binM(class0, class1)
     D = binD(class0, class1)
-    p[0] = 1 - Phi((lymbda - M[0]) / np.sqrt(D[0]))
-    p[1] = Phi((lymbda - M[1]) / np.sqrt(D[1]))
+    p[0] = 1 - Phi((-lymbda - M[0]) / np.sqrt(D[0]))
+    p[1] = Phi((-lymbda - M[1]) / np.sqrt(D[1]))
     return p
 
 
@@ -163,7 +163,7 @@ def calcLyambda(class0, class1, P0, P1):
         for j in range(0, size[1]):
             lymbda += np.log((1 - p1[i][j]) / (1 - p0[i][j]))
     lymbda += np.log(P1 / P0)
-    return lymbda
+    return -lymbda
 
 
 def experimentErrors(expClass, classes, arrP, className, names, pTheoretic):
@@ -265,7 +265,7 @@ if __name__ == '__main__':
     fig0 = plt.figure(figsize=(10, 10))
     plt.plot(x, scipy.stats.norm.pdf(x, arrM[0], np.sqrt(arrD[0])))
     plt.plot(x, scipy.stats.norm.pdf(x, arrM[1], np.sqrt(arrD[1])))
-    # plt.axvline(x=limbda, c='y')
+    plt.axvline(x=limbda, c='y')
 
     fig = plt.figure(figsize=(10, 10))
     fig = printVectors(H, fig, 221)
