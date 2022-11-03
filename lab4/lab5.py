@@ -11,11 +11,11 @@ M4 = [0, 1]
 M5 = [0, 2]
 
 
-B1 = [[0.035, 0.0], [0.0, 0.018]]
+B1 = [[0.03, 0.0], [0.0, 0.018]]
 B2 = [[0.015, 0.0], [0.0, 0.03]]
 B3 = [[0.02, 0.0], [0.0, 0.035]]
 B4 = [[0.03, 0.0], [0.0, 0.03]]
-B5 = [[0.035, 0.0], [0.0, 0.025]]
+B5 = [[0.03, 0.0], [0.0, 0.025]]
 # B1 = [[0.05, 0.0], [0.0, 0.02]]
 # B2 = [[0.04, 0.01], [0.01, 0.05]]
 # B3 = [[0.02, 0.005], [0.005, 0.05]]
@@ -117,11 +117,15 @@ def maxminMethod(vectors):
             result = np.delete(result, np.argmax(minDistances), axis=0)
             dtypical.append(0)
             for j in range(0, len(arrM)):
-                # print(f"\t{j}: {Distance(arrM, arrM[j])}")
                 dtypical[-1] += np.sum(Distance(arrM, arrM[j]))
             dtypical[-1] /= 2*len(arrM)*(len(arrM) - 1)
     dmin.pop(0)
     return clusters, dmin, dtypical, arrM
+
+
+def K_introGroupAvg(vectors, startVal, K):
+
+    return 0
 
 
 def viewClusters(data, arrM, fig, loc, legend):
@@ -139,6 +143,7 @@ def viewClusters(data, arrM, fig, loc, legend):
         plt.plot(viewData[i][0], viewData[i][1], c[i % len(c)])
     plt.legend(legend)
     return fig
+
 
 def print_hi(name):
     # Use a breakpoint in the code line below to debug your script.
@@ -162,9 +167,7 @@ if __name__ == '__main__':
     x5 = generate_vectors(A5, M5, n, N)
 
     data = np.concatenate((x1, x2, x3, x4, x5), axis=1)
-    clusters, d_min, d_typical, arrM = maxminMethod(data)
-    print(d_min)
-    print(d_typical)
+    classes, d_min, d_typical, arr_M = maxminMethod(data)
 
     fig1 = plt.figure(figsize=(16, 7))
     fig1.add_subplot(121)
@@ -177,11 +180,17 @@ if __name__ == '__main__':
     plt.plot(x5[0], x5[1], 'c+')
     plt.legend(["class 1", "class 2", "class 3", "class 4", "class 5"])
     legs = ["M(x)"]
-    for i in range(0, len(clusters)):
+    for i in range(0, len(classes)):
         legs.append(f"class {i}")
-    viewClusters(clusters, arrM, fig1, 122, legs)
-    # imshow(views[-1])
+    viewClusters(classes, arr_M, fig1, 122, legs)
 
+    x = np.arange(2, 2+len(d_min), 1)
+    fig = plt.figure(figsize=(10, 10))
+    plt.plot(x, d_min, c="b", marker="o", linestyle="-")
+    plt.plot(x, d_typical, c="orange", marker="o", linestyle="-")
+    plt.legend(["d min", "d typical"])
     show()
+
+    classes3 = K_introGroupAvg(data, 1, 5)
 
 
