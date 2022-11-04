@@ -205,7 +205,6 @@ def viewResultAndOriginal(classes, Ms, legends):
     plt.plot(x5[0], x5[1], 'c+')
     plt.legend(legs)
     viewClusters(classes, Ms, fig, 122, legends)
-    show()
 
 
 def print_hi(name):
@@ -230,22 +229,13 @@ if __name__ == '__main__':
     x5 = generate_vectors(A5, M5, n, N)
 
     data = np.concatenate((x1, x2, x3, x4, x5), axis=1)
+
     classes, d_min, d_typical, arr_M = maxminMethod(data)
 
-    fig1 = plt.figure(figsize=(16, 7))
-    fig1.add_subplot(121)
-    plt.xlim(-1.6, 1.6)
-    plt.ylim(-0.6, 2.6)
-    plt.plot(x1[0], x1[1], 'r.')
-    plt.plot(x2[0], x2[1], 'gx')
-    plt.plot(x3[0], x3[1], 'b<')
-    plt.plot(x4[0], x4[1], 'm*')
-    plt.plot(x5[0], x5[1], 'c+')
-    plt.legend(["class 1", "class 2", "class 3", "class 4", "class 5"])
     legs = ["M(x)"]
     for i in range(0, len(classes)):
         legs.append(f"class {i}")
-    viewClusters(classes, arr_M, fig1, 122, legs)
+    viewResultAndOriginal(classes, arr_M, legs)
 
     x = np.arange(2, 2+len(d_min), 1)
     fig = plt.figure(figsize=(10, 10))
@@ -259,6 +249,7 @@ if __name__ == '__main__':
 
     classes5, M5, imposters5 = K_introGroupAvg(data, data[:, [151, 156, 160, 161, 166]])
     viewResultAndOriginal(classes5, M5, legs)
+    show()
 
     fakeClasses5, fakeM5, fakeImposters5 = K_introGroupAvg(data, data[:, 0:5])  # подумать над начальными
                                                                                 # для неправильной
