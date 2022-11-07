@@ -54,7 +54,9 @@ def calcMatrixA(B):
 
 
 def M(x):
-    M = np.sum(x, axis=1) / N
+    size = np.shape(x)
+    print(size)
+    M = np.sum(x, axis=1) / size[1]
     return M
 
 
