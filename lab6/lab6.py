@@ -8,7 +8,7 @@ from scipy.sparse import csc_matrix
 from qpsolvers.solvers.osqp_ import osqp_solve_qp
 from sklearn import svm
 
-N = 10
+N = 100
 n = 2
 
 M1 = [0, 0]
@@ -52,7 +52,7 @@ def viewFig(fig, classes, borders, pos, name, borderNames, SVC, SVM_labels):
     ylim = plt.ylim(-2, 3)
     plt.plot(classes[0][0], classes[0][1], 'r+', label="class 0")
     plt.plot(classes[1][0], classes[1][1], 'bx', label="class 1")
-    plt.plot(borders[0][0], borders[0][1], 'm-', label=borderNames[0])
+    plt.plot(borders[0][0], borders[0][1], 'm--', label=borderNames[0])
     legend1 = plt.legend(loc=1)
 
     # create grid to evaluate model
@@ -100,31 +100,31 @@ if __name__ == '__main__':
     datasetXZ = np.concatenate([x, y], axis=1)
 
     # линейно разделимые
-    P = calculate_P_matrix(datasetXY, vector_r)
+    Pxy = calculate_P_matrix(datasetXY, vector_r)
+    Pxz = calculate_P_matrix(datasetXZ, vector_r)
     q = -np.ones(2 * N)
     G = -np.eye(2 * N)
     h = np.zeros(2 * N)
     A = csc_matrix(vector_r)
     b = [0.]
-    print(np.linalg.det(P))
 
     # не всегда находит решение из-за ограничения в количестве итераций
     # запускать несколько раз
-    ls = osqp_solve_qp(P=csc_matrix(P), q=q, G=G, h=h, A=csc_matrix(A), b=b)
-    print(np.shape(ls), ls)
+    ls = osqp_solve_qp(P=csc_matrix(Pxy), q=q, G=G, h=h, A=csc_matrix(A), b=b, max_iter=50000)
+    limbs = osqp_solve_qp(P=csc_matrix(Pxz), q=q, G=G, h=h, A=csc_matrix(A), b=b, max_iter=50000)
+
     W, wn = calcW(datasetXY, vector_r, ls)
     print(f"important ls: {len(ls[ls > 1e-3])}\t{ls[ls > 1e-3]}")
-    t = np.linspace(-10, 10, 100)
+    t = np.linspace(-5, 5, 100)
     borderXY = lab1.borderLinClassificator(W, wn, t, "SVM")
 
     yTrain = np.zeros(2*N)
     yTrain[N:2*N] = np.ones(N)
     xTrain = datasetXY.T
-    svc = svm.SVC(kernel='linear')
-    lin_svc = svm.LinearSVC()
-    svc.fit(X=xTrain, y=yTrain)
-    lin_svc.fit(X=xTrain, y=yTrain)
-    print(type(svc))
+    svc = svm.SVC(kernel='linear', C=1)
+    lin_svc = svm.LinearSVC(dual=True, C=1)
+    svc.fit(X=xTrain, y=yTrain)  # libsvm
+    lin_svc.fit(X=xTrain, y=yTrain)  # liblinear
 
     fig1 = plt.figure(figsize=(16, 7))
     fig1 = viewFig(fig1, [x, y], [borderXY], 121, "SVC borders",
