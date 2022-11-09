@@ -68,12 +68,12 @@ def viewFig(fig, classes, borders, pos, name, borderNames, SVC, SVM_labels, qp_s
     plt.plot(borders[0][0], borders[0][1], 'm-', label=borderNames[0], alpha=0.5)
 
     # ширина полосы при квадратичном программировании
-    # plt.plot(borders[1][0], borders[1][1], 'm--', label=borderNames[1], alpha=0.3)
-    # plt.plot(borders[2][0], borders[2][1], 'm--', alpha=0.3)
+    plt.plot(borders[1][0], borders[1][1], 'm--', label=borderNames[1], alpha=0.3)
+    plt.plot(borders[2][0], borders[2][1], 'm--', alpha=0.3)
 
     # create grid to evaluate model
-    xx = np.linspace(xlim[0], xlim[1], 30)
-    yy = np.linspace(ylim[0], ylim[1], 30)
+    xx = np.linspace(-5, 5, 200)
+    yy = np.linspace(-5, 5, 200)
     YY, XX = np.meshgrid(yy, xx)
     xy = np.vstack([XX.ravel(), YY.ravel()]).T
     Z0 = SVC.decision_function(xy).reshape(XX.shape)
@@ -98,7 +98,7 @@ def viewFig(fig, classes, borders, pos, name, borderNames, SVC, SVM_labels, qp_s
 
 
 def analiseSVMkernels(Cs, X, y, kernParam, classes, borders, kernelname, qp_supVectors):
-    for i in range(0, len(Cs)):
+    for i in range(len(Cs) - 1, -1, -1):
         svc_kernel = svm.SVC(kernel=kernParam["kernel"], gamma=kernParam["gamma"],
                              coef0=kernParam["coef0"], degree=kernParam["degree"], C=Cs[i])
         svc_kernel.fit(X=X, y=y)
@@ -184,7 +184,6 @@ if __name__ == '__main__':
     for i in range(0, len(C)):
         h_withC = np.concatenate((h, C[i] * np.ones(2 * N)))
         limbs.append(osqp_solve_qp(P=csc_matrix(Pxz), q=q, G=G_withC, h=h_withC, A=csc_matrix(A), b=b, max_iter=50000))
-        supVectorsXZ.append(getSupportVectors(limbs[i], datasetXZ))
     print("Good")
 
     borderXZ = []
@@ -192,6 +191,7 @@ if __name__ == '__main__':
     borderXZ_low = []
     for i in range(0, len(C)):
         W2, wn2 = calcW(datasetXZ, vector_r, limbs[i])
+        supVectorsXZ.append(getSupportVectors(limbs[i], datasetXZ))
         border_qp = border_and_range(W2, wn2)
         borderXZ.append(border_qp[0])
         borderXZ_up.append(border_qp[1])
