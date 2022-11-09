@@ -6,7 +6,6 @@ import copy
 
 import numpy as np
 import matplotlib.pyplot as plt
-from numpy import double
 from skimage.io import imsave, imshow, show, imread
 from scipy.special import erf, erfinv
 import math
@@ -26,6 +25,9 @@ B3 = [[0.2, 0.1],
 
 n = 2
 N = 200
+
+empty2 = ["", ""]
+empty3 = ["", "", ""]
 
 # lab 1
 def generate_vectors(A, M, n, N):
@@ -277,6 +279,16 @@ def classificationError(x, arrM, arrB, p, className, names):
     return absError, e
 
 
+def calcBayessErrors(x, arrM, arrB, className, names):
+    err = 0
+    sizeX = np.shape(x)
+    for i in range(0, sizeX[1]):
+        n = BayeslassificatorB(x[:, i], arrM, arrB, 1)
+        if className != num2Classname(n, names):
+            err += 1
+    return err
+
+
 def amountVectorsWithError(e, p, expErr):
     N = np.ceil((1-p)/(expErr*e*e))
     return N
@@ -310,9 +322,7 @@ def calcMSEParameters(class0, class1):
     z0 = -1*z0
 
     resSize = (3, (size1[1] + size0[1]))
-    z = np.ones(resSize)
-    z[0:3, 0:z1Size[1]] = z1
-    z[0:3, z1Size[1]:resSize[1]] = z0  # size(3, 400)
+    z = np.concatenate((z1, z0), axis=1)  # size(3, 400)
 
     tmp = np.linalg.inv(np.matmul(z, np.transpose(z)))
     R = np.ones((resSize[1], 1))
@@ -355,19 +365,31 @@ def borderLinClassificator(W, wn, x, nameClassificator):
     return x, y
 
 
-def printClassificator(fig, pos, class0, class1, dBayess, dAnother, nameAnotherBorder, nameBayes, lineFormat, colors):
+def calcErrors(class0, class1, W, wn):
+    errs = [0, 0]
+    for i in range(0, len(class0[0])):
+        d = np.dot(W, class0[:, i]) + wn
+        if d > 0:
+            errs[0] += 1
+    for i in range(0, len(class1[0])):
+        d = np.dot(W, class1[:, i]) + wn
+        if d < 0:
+            errs[1] += 1
+    return errs
+
+
+def printClassificator(fig, pos, class0, class1, dBayess, dAnother, nameAnotherBorder, nameBayes,
+                       lineFormat, colors, iter):
     fig.add_subplot(pos)
     plt.xlim(-1.5, 2.5)
     plt.ylim(-1.5, 2.5)
-    # plt.xlim(-30, 30)
-    # plt.ylim(-30, 30)
-    plt.plot(class0[0], class0[1], 'r+')
-    plt.plot(class1[0], class1[1], 'bx')
-    plt.plot(dAnother[0], dAnother[1], 'm-')
-    # c = ['r', 'y', 'g', 'c', 'b', 'm']
+    plt.plot(class0[0], class0[1], 'r+', label="class Red")
+    plt.plot(class1[0], class1[1], 'bx', label="class Blue")
+    plt.plot(dAnother[0], dAnother[1], 'k-', label=f"{nameAnotherBorder} border")
     for i in range(1, len(dBayess)):
-        plt.plot(dBayess[0], dBayess[i], color=colors[i%len(colors)], linestyle=lineFormat)
-    plt.legend(["class Red", "class Blue", nameAnotherBorder+" border", nameBayes+" border"])
+        plt.plot(dBayess[0], dBayess[i], color=colors[i % len(colors)],
+                 linestyle=lineFormat, label=f"{nameBayes} {iter[i]} border")
+    plt.legend()
     return fig
 
 
@@ -557,8 +579,9 @@ if __name__ == '__main__':
     dFisher2 = borderLinClassificator(W2, wn2, t3, "Fisher with different B")
 
     fig5 = plt.figure(figsize=(16, 7))
-    fig5 = printClassificator(fig5, 121, x3, z3, dBayess, dFisher, "Fisher", "Bayes", "--", ["y", "y"])
-    fig5 = printClassificator(fig5, 122, x3, y3, dBayess2, dFisher2, "Fisher", "Bayes", "-", ["y", "y"])
+    fig5 = printClassificator(fig5, 121, x3, z3, dBayess, dFisher, "Fisher", "Bayes", "--", ["y", "y"], empty2)
+    fig5 = printClassificator(fig5, 122, x3, y3, np.array(dBayess2)[[0, 2]], dFisher2, "Fisher", "Bayes",
+                              "-", ["y", "y"], empty3)
 
 
     # task 4.2
@@ -570,12 +593,11 @@ if __name__ == '__main__':
     dMSE2 = borderLinClassificator(Wmse2[0:2], Wmse1[-1], t3, "MSE with different B")
 
     fig6 = plt.figure(figsize=(16, 7))
-    fig6 = printClassificator(fig6, 121, x3, z3, dBayess, dMSE1, "MSE", "Bayes", "--", ["y", "y"])
-    fig6 = printClassificator(fig6, 122, x3, y3, dBayess2, dMSE2, "MSE", "Bayes", "-", ["y", "y"])
-    # fig6 = printClassificator(fig6, 122, x3, y3, dBayess2, dFisher2, "MSE")
-    show()
+    fig6 = printClassificator(fig6, 121, x3, z3, dBayess, dMSE1, "MSE", "Bayes", "--", ["y", "y"], empty2)
+    fig6 = printClassificator(fig6, 122, x3, y3, np.array(dBayess2)[[0, 2]], dMSE2, "MSE", "Bayes",
+                              "-", ["y", "y"], empty3)
+    # show()
 
-    # посчитать экспериментальные ошибки классификаторов Фишера, СКО и Байесса
 
     # task 4.3
     # Классификатор Роббинса-Монро
@@ -590,7 +612,7 @@ if __name__ == '__main__':
 
     xz = []
     xy = []
-    for i in range(sizeX[1]):
+    for i in range(sizeX[1]-1, -1, -1):
         xz.append(Z0[:, i])
         xz.append(Z1[:, i])
 
@@ -599,8 +621,6 @@ if __name__ == '__main__':
 
     xz = np.transpose(xz)
     xy = np.transpose(xy)
-    # print(np.shape(xz))
-    # Z = np.concatenate((Z0, Z1), axis=1)
 
     Wrobbins1 = calcACRParameters(xz)
     arrBorders1 = [t3]
@@ -609,11 +629,13 @@ if __name__ == '__main__':
         arrBorders1.append(tmpY[1])
 
     c = ["r", "orange", "y", "g", "darkgreen", "c", "b", "m"]
+    iters = [0, 0, 1, 2, 5, 10, 30, 50, 70, 100]
     fig7 = plt.figure(figsize=(16, 7))
-    fig7 = printClassificator(fig7, 121, x3, z3, arrBorders1[0:40:4], arrBorders1[0],
-                              "Bayes", "Robbins: sample B", "--", c)
+    fig7 = printClassificator(fig7, 121, x3, z3, np.array(arrBorders1)[iters[1:]],
+                              dBayess, "Bayes", "Robbins: sample B", "--", c, iters)
     resd1 = [arrBorders1[0], arrBorders1[-1]]
-    fig7 = printClassificator(fig7, 122, x3, z3, resd1, dBayess, "Bayes", "Robbins: sample B", "--", c)
+    fig7 = printClassificator(fig7, 122, x3, z3, resd1, dBayess, "Bayes", "Robbins: sample B",
+                              "--", c, ["", f"{len(arrBorders1)-1}"])
 
     Wrobbins2 = calcACRParameters(xy)
     arrBorders2 = [t3]
@@ -622,12 +644,44 @@ if __name__ == '__main__':
         arrBorders2.append(tmpY[1])
 
     fig8 = plt.figure(figsize=(16, 7))
-    fig8 = printClassificator(fig8, 121, x3, y3, arrBorders2[0:40:4], arrBorders2[0],
-                              "Bayes", "Robbins: dif B", "--", c)
+    fig8 = printClassificator(fig8, 121, x3, y3, np.array(arrBorders2)[iters[1:]],
+                              np.array(dBayess2)[[0, 2]], "Robbins: dif B", "Bayes", "--", c, iters)
     resd2 = [arrBorders2[0], arrBorders2[-1]]
-    fig8 = printClassificator(fig8, 122, x3, y3, dBayess2, resd2, "Robbins: dif B", "Bayes", "--", ['y', 'y'])
+    fig8 = printClassificator(fig8, 122, x3, y3,resd2, np.array(dBayess2)[[0, 2]], "Bayes", "Robbins: dif B",
+                              "--", ['y', 'y'], ["", f"{len(arrBorders2)-1}", f"{len(arrBorders2)-1}"])
 
-    # print(len(arrBorders1), len(arrBorders2))
+    Fisher_errs1 = calcErrors(x3, z3, W1, wn1)
+    MSE_errs1 = calcErrors(x3, z3, Wmse1[0:-1], Wmse1[-1])
+    ACR_errs1 = calcErrors(x3, z3, Wrobbins1[-1][0:-1], Wrobbins1[-1][-1])
+    errsBayessRed = calcBayessErrors(x3, [M1, M2], [B1, B1], "red", ["red", "blue"])
+    errsBayessBlue = calcBayessErrors(z3, [M1, M2], [B1, B1], "blue", ["red", "blue"])
+
+    print(f"sampel B"
+          f"\n\nBayess with sample B: {(errsBayessRed+errsBayessBlue)/(2*N)}"
+          f"\ninvalid red class: {errsBayessRed}\ninvalid blue class: {errsBayessBlue}"
+          f"\n\nFisher: {np.sum(Fisher_errs1)/(2*N)}"
+          f"\ninvalid red class: {Fisher_errs1[0]}\ninvalid blue class: {Fisher_errs1[1]}"
+          f"\n\nMSE: {np.sum(MSE_errs1)/(2*N)}"
+          f"\ninvalid red class: {MSE_errs1[0]}\ninvalid blue class: {MSE_errs1[1]}"
+          f"\n\nACR: {np.sum(ACR_errs1) / (2 * N)}"
+          f"\ninvalid red class: {ACR_errs1[0]}\ninvalid blue class: {ACR_errs1[1]}"
+          )
+
+    Fisher_errs1 = calcErrors(x3, y3, W2, wn2)
+    MSE_errs1 = calcErrors(x3, y3, Wmse2[0:-1], Wmse2[-1])
+    ACR_errs1 = calcErrors(x3, y3, Wrobbins2[-1][0:-1], Wrobbins2[-1][-1])
+    errsBayessRed = calcBayessErrors(x3, [M1, M2], [B1, B2], "red", ["red", "blue"])
+    errsBayessBlue = calcBayessErrors(y3, [M1, M2], [B1, B2], "blue", ["red", "blue"])
+    print(f"\n=================================================\ndifference B"
+          f"\n\nBayess with sample B: {(errsBayessRed + errsBayessBlue) / (2 * N)}"
+          f"\ninvalid red class: {errsBayessRed}\ninvalid blue class: {errsBayessBlue}"
+          f"\n\nFisher: {np.sum(Fisher_errs1) / (2 * N)}"
+          f"\ninvalid red class: {Fisher_errs1[0]}\ninvalid blue class: {Fisher_errs1[1]}"
+          f"\n\nMSE: {np.sum(MSE_errs1) / (2 * N)}"
+          f"\ninvalid red class: {MSE_errs1[0]}\ninvalid blue class: {MSE_errs1[1]}"
+          f"\n\nACR: {np.sum(ACR_errs1) / (2 * N)}"
+          f"\ninvalid red class: {ACR_errs1[0]}\ninvalid blue class: {ACR_errs1[1]}"
+          )
 
     # выбор начального W не влияет сходимостm
     # последовательность: 0.5<b<=1 при большей степени коэфф 1/k^b становится меньше -> сходится плавнее, но медленней
