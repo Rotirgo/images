@@ -4,11 +4,12 @@ from skimage.io import show
 import lab1_2_4.lab124 as lab1
 from scipy.sparse import csc_matrix
 from qpsolvers.solvers.osqp_ import osqp_solve_qp
+from qpsolvers.solvers.cvxopt_ import cvxopt_solve_qp  # попробовать с эти qp
 from sklearn import svm
 
 N = 100
 n = 2
-eps = 1e-3
+eps = 1e-10
 
 M1 = [0, 0]
 M2 = [1, 1]
@@ -21,12 +22,16 @@ B3 = [[0.25, -0.05],
       [-0.05, 0.25]]
 
 
-def calculate_P_matrix(dataset, r, kernel_func):
+def calculate_P_matrix(dataset, r, kernel_func, **kwargs):
     size = dataset.shape
     result = np.zeros((size[1], size[1]))
     for i in range(0, size[1]):
         for j in range(0, size[1]):
-            result[i, j] = r[i]*r[j]*kernel_func(dataset[:, i], dataset[:, j])
+            if len(kwargs) < 1:
+                result[i, j] = r[i]*r[j]*kernel_func(dataset[:, i], dataset[:, j])
+            else:
+                value = kwargs.values()
+                result[i, j] = r[i] * r[j] * kernel_func(x=dataset[:, i], y=dataset[:, j], p=value)
     return result
 
 
@@ -112,11 +117,40 @@ def analiseSVMkernels(Cs, X, y, kernParam, classes, borders, kernelname, qp_supV
 
 def border_and_range(w, Wn):
     t = np.linspace(-5, 5, 100)
-    delta = np.sqrt((1 + (w[0]/w[1])**2)/np.dot(w, w))
+    delta = np.sqrt((1 + (w[0]/w[1])**2)/np.dot(w, w))  # ??? почему-то границы не совпадают с svc
     border = lab1.borderLinClassificator(w, Wn, t, "SVM")
     border_up = lab1.borderLinClassificator(w, (Wn + delta), t, "SVM")
     border_low = lab1.borderLinClassificator(w, (Wn - delta), t, "SVM")
     return border, border_up, border_low
+
+
+def K_poly0(x, y, **kwargs):
+    degree = list(kwargs["p"])[0]
+    K = (np.dot(x, y))**degree
+    return K
+
+def K_poly1(x, y, **kwargs):
+    degree = list(kwargs["p"])[0]
+    K = (np.dot(x, y) + 1)**degree
+    return K
+
+def K_rad(x, y, **kwargs):
+    gamma = list(kwargs["p"])[0]
+    dif = x - y
+    K = np.exp(-gamma * np.dot(dif, dif))
+    return K
+
+def K_radGauss(x, y, **kwargs):
+    D = list(kwargs["p"])[0]
+    dif = x - y
+    K = np.exp(-0.5 * np.dot(dif, dif) / D)
+    return K
+
+def K_sigmoid(x, y, **kwargs):
+    gamma = list(kwargs["p"])[0]
+    c = list(kwargs["p"])[1]
+    K = np.tanh(gamma * np.dot(x, y) + c)
+    return K
 
 
 def print_hi(name):
@@ -180,11 +214,39 @@ if __name__ == '__main__':
     G_withC = np.concatenate((G, np.eye(2 * N)), axis=0)
 
     limbs = []
+    K_limbs = {"poly0": [], "poly1": [], "rad": [], "radGauss": [], "sigmoid": []}
+    Pxz_poly0 = calculate_P_matrix(datasetXZ, vector_r, kernel_func=K_poly0, d=3)
+    Pxz_poly1 = calculate_P_matrix(datasetXZ, vector_r, kernel_func=K_poly1, d=3)
+    Pxz_rad = calculate_P_matrix(datasetXZ, vector_r, kernel_func=K_rad, gamma=1)
+    Pxz_radGauss = calculate_P_matrix(datasetXZ, vector_r, kernel_func=K_radGauss, D=1)
+    Pxz_sigmoid = calculate_P_matrix(datasetXZ, vector_r, kernel_func=K_sigmoid, gamma=1, c=0.01)
     supVectorsXZ = []
     for i in range(0, len(C)):
         h_withC = np.concatenate((h, C[i] * np.ones(2 * N)))
         limbs.append(osqp_solve_qp(P=csc_matrix(Pxz), q=q, G=G_withC, h=h_withC, A=csc_matrix(A), b=b, max_iter=50000))
+        K_limbs["poly0"].append(osqp_solve_qp(P=csc_matrix(Pxz_poly0), q=q, G=G_withC,
+                                        h=h_withC, A=csc_matrix(A), b=b, max_iter=50000))
+        K_limbs["poly1"].append(osqp_solve_qp(P=csc_matrix(Pxz_poly1), q=q, G=G_withC,
+                                              h=h_withC, A=csc_matrix(A), b=b, max_iter=50000))
+        K_limbs["rad"].append(osqp_solve_qp(P=csc_matrix(Pxz_rad), q=q, G=G_withC,
+                                              h=h_withC, A=csc_matrix(A), b=b, max_iter=50000))
+        K_limbs["radGauss"].append(osqp_solve_qp(P=csc_matrix(Pxz_radGauss), q=q, G=G_withC,
+                                              h=h_withC, A=csc_matrix(A), b=b, max_iter=50000))
+        K_limbs["sigmoid"].append(osqp_solve_qp(P=csc_matrix(Pxz_poly0), q=q, G=G_withC,
+                                              h=h_withC, A=csc_matrix(A), b=b, max_iter=50000))  # P поменять и отладить
     print("Good")
+
+    print(np.shape(K_limbs["poly0"]), len(K_limbs))
+    support_vectors = []
+    for value in K_limbs.values():  # for each kernel    K_limbs = dict{ [ [],[],[],[] ] x5}
+        K_support = []
+        for i in range(0, len(C)):  # for each C
+            arr_sv = []
+            for j in range(0, len(value[i])):
+                if value[i][j] > eps:
+                    arr_sv.append(datasetXZ[:, j])
+            K_support.append(np.transpose(arr_sv))
+        support_vectors.append(K_support)  # support_vectors [     [  [],[],[],[]  ] x5    ]
 
     borderXZ = []
     borderXZ_up = []
@@ -211,24 +273,24 @@ if __name__ == '__main__':
     # kernel, gamma, coef0, degree
     dict_params = {"kernel": "poly", "gamma": "scale", "coef0": 0.0, "degree": 3}
     analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z],
-                      [borderXZ, borderXZ_up, borderXZ_low], "polynomial", supVectorsXZ)
+                      [borderXZ, borderXZ_up, borderXZ_low], "polynomial", support_vectors[0])
 
     dict_params = {"kernel": "poly", "gamma": "scale", "coef0": 1.0, "degree": 3}
     analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z],
-                      [borderXZ, borderXZ_up, borderXZ_low], "polynomial not simple", supVectorsXZ)
+                      [borderXZ, borderXZ_up, borderXZ_low], "polynomial not simple", support_vectors[1])
 
     # "scale" = 1/(n_features * X.var()) , "auto" = 1/n_features
     dict_params = {"kernel": "rbf", "gamma": "scale", "coef0": 0.0, "degree": 3}
     analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z],
-                      [borderXZ, borderXZ_up, borderXZ_low], "radiance func", supVectorsXZ)
+                      [borderXZ, borderXZ_up, borderXZ_low], "radiance func", support_vectors[2])
 
     D = 2*xTrain.var()
     dict_params = {"kernel": "rbf", "gamma": 1 / D, "coef0": 0.0, "degree": 3}
     analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z],
-                      [borderXZ, borderXZ_up, borderXZ_low], "radiance func Gauss", supVectorsXZ)
+                      [borderXZ, borderXZ_up, borderXZ_low], "radiance func Gauss", support_vectors[3])
 
     dict_params = {"kernel": "sigmoid", "gamma": 0.5, "coef0": -0.01, "degree": 3}
     analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z],
-                      [borderXZ, borderXZ_up, borderXZ_low], "sigmoid", supVectorsXZ)
+                      [borderXZ, borderXZ_up, borderXZ_low], "sigmoid", support_vectors[4])
 
     print("Wow! It is work!")
