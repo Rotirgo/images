@@ -9,7 +9,7 @@ from sklearn import svm
 
 N = 100
 n = 2
-eps = 1e-10
+eps = 1e-5
 
 M1 = [0, 0]
 M2 = [1, 1]
@@ -85,8 +85,8 @@ def viewFig(fig, classes, borders, pos, name, borderNames, SVC, SVM_labels, qp_s
 
     # plot support vectors
     if isinstance(SVC, type(svm.SVC())):
-        plt.scatter(SVC.support_vectors_[:, 0], SVC.support_vectors_[:, 1], s=100, linewidth=1, facecolors='none',
-                    edgecolors='k', label="Support Vectors SVC", alpha=0.5)
+        plt.scatter(SVC.support_vectors_[:, 0], SVC.support_vectors_[:, 1], s=90, linewidth=1, facecolors='none',
+                    edgecolors='k', label="Support Vectors SVC", alpha=0.7)
     plt.scatter(qp_supVectors[0], qp_supVectors[1], s=130, linewidth=1, facecolors='none',
                 edgecolors='orange', label="Support Vectors qp", alpha=0.5)
     legend1 = plt.legend(loc=1)
@@ -182,11 +182,11 @@ if __name__ == '__main__':
     G = -np.eye(2 * N)
     h = np.zeros(2 * N)
     A = csc_matrix(vector_r)
-    b = [0.]
+    b = np.array([0.0])
 
     # не всегда находит решение из-за ограничения в количестве итераций
     # запускать несколько раз
-    ls = osqp_solve_qp(P=csc_matrix(Pxy), q=q, G=G, h=h, A=csc_matrix(A), b=b, max_iter=200000)
+    ls = cvxopt_solve_qp(P=Pxy, q=q, G=G, h=h, A=A, b=b)
     print(np.shape(ls))
     W, wn = calcW(datasetXY, vector_r, ls)
     supVectorsXY = getSupportVectors(ls, datasetXY)
@@ -219,21 +219,16 @@ if __name__ == '__main__':
     Pxz_poly1 = calculate_P_matrix(datasetXZ, vector_r, kernel_func=K_poly1, d=3)
     Pxz_rad = calculate_P_matrix(datasetXZ, vector_r, kernel_func=K_rad, gamma=1)
     Pxz_radGauss = calculate_P_matrix(datasetXZ, vector_r, kernel_func=K_radGauss, D=1)
-    Pxz_sigmoid = calculate_P_matrix(datasetXZ, vector_r, kernel_func=K_sigmoid, gamma=1, c=0.01)
+    Pxz_sigmoid = calculate_P_matrix(datasetXZ, vector_r, kernel_func=K_sigmoid, gamma=1, c=-0.01)
     supVectorsXZ = []
     for i in range(0, len(C)):
         h_withC = np.concatenate((h, C[i] * np.ones(2 * N)))
-        limbs.append(osqp_solve_qp(P=csc_matrix(Pxz), q=q, G=G_withC, h=h_withC, A=csc_matrix(A), b=b, max_iter=50000))
-        K_limbs["poly0"].append(osqp_solve_qp(P=csc_matrix(Pxz_poly0), q=q, G=G_withC,
-                                        h=h_withC, A=csc_matrix(A), b=b, max_iter=50000))
-        K_limbs["poly1"].append(osqp_solve_qp(P=csc_matrix(Pxz_poly1), q=q, G=G_withC,
-                                              h=h_withC, A=csc_matrix(A), b=b, max_iter=50000))
-        K_limbs["rad"].append(osqp_solve_qp(P=csc_matrix(Pxz_rad), q=q, G=G_withC,
-                                              h=h_withC, A=csc_matrix(A), b=b, max_iter=50000))
-        K_limbs["radGauss"].append(osqp_solve_qp(P=csc_matrix(Pxz_radGauss), q=q, G=G_withC,
-                                              h=h_withC, A=csc_matrix(A), b=b, max_iter=50000))
-        K_limbs["sigmoid"].append(osqp_solve_qp(P=csc_matrix(Pxz_poly0), q=q, G=G_withC,
-                                              h=h_withC, A=csc_matrix(A), b=b, max_iter=50000))  # P поменять и отладить
+        limbs.append(cvxopt_solve_qp(P=Pxz, q=q, G=G_withC, h=h_withC, A=A, b=b))
+        K_limbs["poly0"].append(cvxopt_solve_qp(P=Pxz_poly0, q=q, G=G_withC, h=h_withC, A=A, b=b))
+        K_limbs["poly1"].append(cvxopt_solve_qp(P=Pxz_poly1, q=q, G=G_withC, h=h_withC, A=A, b=b))
+        K_limbs["rad"].append(cvxopt_solve_qp(P=Pxz_rad, q=q, G=G_withC, h=h_withC, A=A, b=b))
+        K_limbs["radGauss"].append(cvxopt_solve_qp(P=Pxz_radGauss, q=q, G=G_withC, h=h_withC, A=A, b=b))
+        K_limbs["sigmoid"].append(cvxopt_solve_qp(P=Pxz_poly0, q=q, G=G_withC, h=h_withC, A=A, b=b))  # !!!
     print("Good")
 
     print(np.shape(K_limbs["poly0"]), len(K_limbs))
