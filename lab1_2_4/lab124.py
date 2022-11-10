@@ -281,8 +281,8 @@ def classificationError(x, arrM, arrB, p, className, names):
 
 def calcBayessErrors(x, arrM, arrB, className, names):
     err = 0
-    sizeX = np.shape(x)
-    for i in range(0, sizeX[1]):
+    size_x = np.shape(x)
+    for i in range(0, size_x[1]):
         n = BayeslassificatorB(x[:, i], arrM, arrB, 1)
         if className != num2Classname(n, names):
             err += 1
