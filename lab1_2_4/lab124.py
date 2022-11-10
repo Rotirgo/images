@@ -279,16 +279,6 @@ def classificationError(x, arrM, arrB, p, className, names):
     return absError, e
 
 
-def calcBayessErrors(x, arrM, arrB, className, names):
-    err = 0
-    size_x = np.shape(x)
-    for i in range(0, size_x[1]):
-        n = BayeslassificatorB(x[:, i], arrM, arrB, 1)
-        if className != num2Classname(n, names):
-            err += 1
-    return err
-
-
 def amountVectorsWithError(e, p, expErr):
     N = np.ceil((1-p)/(expErr*e*e))
     return N
@@ -323,7 +313,7 @@ def calcMSEParameters(class0, class1):
     return np.reshape(W, (3, ))
 
 
-def calcACRParameters(initVectors):
+def calcACRParameters(initVectors, beta):
     arrW = []
     W = 0
     size = np.shape(initVectors)
@@ -341,7 +331,7 @@ def calcACRParameters(initVectors):
                 if sgn[0] != flagSNG:
                     cnt += 1
                     flagSNG = sgn[0]
-                W = arrW[-1] + pow(cnt, -0.999)*x*sgn
+                W = arrW[-1] + pow(cnt, -beta)*x*sgn
                 arrW.append(np.reshape(W, (size[0]-1,)))
     return arrW
 
@@ -369,6 +359,16 @@ def calcErrors(class0, class1, W, wn):
         if d < 0:
             errs[1] += 1
     return errs
+
+
+def calcBayessErrors(x, arrM, arrB, className, names):
+    err = 0
+    size_x = np.shape(x)
+    for i in range(0, size_x[1]):
+        n = BayeslassificatorB(x[:, i], arrM, arrB, 1)
+        if className != num2Classname(n, names):
+            err += 1
+    return err
 
 
 def printClassificator(fig, pos, class0, class1, dBayess, dAnother, nameAnotherBorder, nameBayes,
@@ -559,6 +559,7 @@ if __name__ == '__main__':
     sizeX = np.shape(x3)
     sizeY = np.shape(y3)
     sizeZ = np.shape(z3)
+
     # task 4.1
     # Классификатор, максимизирующий критерий Фишера
     W1, wn1 = calcFishersParametrs(M1, M2, B1, B1)
@@ -576,7 +577,6 @@ if __name__ == '__main__':
     fig5 = printClassificator(fig5, 122, x3, y3, np.array(dBayess2)[[0, 2]], dFisher2, "Fisher", "Bayes",
                               "-", ["y", "y"], empty3)
 
-
     # task 4.2
     # Классификатор, минимизирующий СКО
     Wmse1 = calcMSEParameters(x3, z3)
@@ -590,7 +590,6 @@ if __name__ == '__main__':
     fig6 = printClassificator(fig6, 122, x3, y3, np.array(dBayess2)[[0, 2]], dMSE2, "MSE", "Bayes",
                               "-", ["y", "y"], empty3)
     # show()
-
 
     # task 4.3
     # Классификатор Роббинса-Монро
@@ -610,7 +609,7 @@ if __name__ == '__main__':
     xz = np.transpose(xz)
     xy = np.transpose(xy)
 
-    Wrobbins1 = calcACRParameters(xz)
+    Wrobbins1 = calcACRParameters(xz, 0.999)
     arrBorders1 = [t3]
     for w in Wrobbins1:
         tmpY = borderLinClassificator(w[0:2], w[-1], t3, "Robbins-Monro with sample B")
@@ -625,7 +624,7 @@ if __name__ == '__main__':
     fig7 = printClassificator(fig7, 122, x3, z3, resd1, dBayess, "Bayes", "Robbins: sample B",
                               "--", c, ["", f"{len(arrBorders1)-1}"])
 
-    Wrobbins2 = calcACRParameters(xy)
+    Wrobbins2 = calcACRParameters(xy, 0.999)
     arrBorders2 = [t3]
     for w in Wrobbins2:
         tmpY = borderLinClassificator(w[0:2], w[-1], t3, "Robbins-Monro with different B")
@@ -633,7 +632,7 @@ if __name__ == '__main__':
 
     fig8 = plt.figure(figsize=(16, 7))
     fig8 = printClassificator(fig8, 121, x3, y3, np.array(arrBorders2)[iters[1:]],
-                              np.array(dBayess2)[[0, 2]], "Robbins: dif B", "Bayes", "--", c, iters)
+                              np.array(dBayess2)[[0, 2]], "Bayes: dif B", "Robbins", "--", c, iters)
     resd2 = [arrBorders2[0], arrBorders2[-1]]
     fig8 = printClassificator(fig8, 122, x3, y3,resd2, np.array(dBayess2)[[0, 2]], "Bayes", "Robbins: dif B",
                               "--", ['y', 'y'], ["", f"{len(arrBorders2)-1}"])
@@ -671,7 +670,21 @@ if __name__ == '__main__':
           f"\ninvalid red class: {ACR_errs1[0]}\ninvalid blue class: {ACR_errs1[1]}"
           )
 
-    # выбор начального W не влияет сходимостm
+    beta = np.arange(0.55, 1, 0.05)
+    analise_beta1 = []
+    analise_beta2 = []
+    for el in beta:
+        tmp1 = calcACRParameters(xz, el)
+        tmp2 = calcACRParameters(xy, el)
+        analise_beta1.append(len(tmp1))
+        analise_beta2.append(len(tmp2))
+
+    fig4 = plt.figure(figsize=(16, 7))
+    plt.plot(beta, analise_beta1, 'r-', label="sample B")
+    plt.plot(beta, analise_beta2, 'b-', label="dif B")
+    plt.legend()
+
+    # выбор начального W не влияет сходимость, но влияет на количество итераций, чтоб проблизиться к опт границе
     # последовательность: 0.5<b<=1 при большей степени коэфф 1/k^b становится меньше -> сходится плавнее, но медленней
     # и наоборот, при меньшей степени сходится быстрее, но может долго колебаться возле нужной гранницы
 
