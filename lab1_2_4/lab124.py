@@ -313,19 +313,12 @@ def calcMSEParameters(class0, class1):
     W = 0
     size1 = np.shape(class1)
     size0 = np.shape(class0)
-    z1Size = ((size1[0] + 1), size1[1])
-    z0Size = ((size0[0] + 1), size0[1])
-    z1 = np.ones(z1Size)
-    z0 = np.ones(z0Size)
-    z1[0:size1[0], 0:size1[1]] = class1
-    z0[0:size0[0], 0:size0[1]] = class0
-    z0 = -1*z0
-
-    resSize = (3, (size1[1] + size0[1]))
+    z0 = -1*np.append(class0, [np.ones(size0[1])], axis=0)
+    z1 = np.append(class1, [np.ones(size1[1])], axis=0)
     z = np.concatenate((z1, z0), axis=1)  # size(3, 400)
 
     tmp = np.linalg.inv(np.matmul(z, np.transpose(z)))
-    R = np.ones((resSize[1], 1))
+    R = np.ones((size1[1] + size0[1], 1))
     W = np.matmul(np.matmul(tmp, z), R)
     return np.reshape(W, (3, ))
 
@@ -389,7 +382,7 @@ def printClassificator(fig, pos, class0, class1, dBayess, dAnother, nameAnotherB
     for i in range(1, len(dBayess)):
         plt.plot(dBayess[0], dBayess[i], color=colors[i % len(colors)],
                  linestyle=lineFormat, label=f"{nameBayes} {iter[i]} border")
-    plt.legend()
+    plt.legend(loc=1)
     return fig
 
 
@@ -601,14 +594,9 @@ if __name__ == '__main__':
 
     # task 4.3
     # Классификатор Роббинса-Монро
-    Z0 = np.ones((sizeX[0] + 2, sizeX[1]))
-    Z0[-1] = Z0[-1]*-1
-    Z1 = np.ones((sizeZ[0] + 2, sizeZ[1]))
-    Z2 = np.ones((sizeY[0] + 2, sizeY[1]))
-
-    Z0[0:sizeX[0], 0:sizeX[1]] = x3
-    Z1[0:sizeZ[0], 0:sizeZ[1]] = z3
-    Z2[0:sizeY[0], 0:sizeY[1]] = y3
+    Z0 = np.append(x3, [np.ones(sizeX[1]), -1 * np.ones(sizeX[1])], axis=0)
+    Z1 = np.append(z3, [np.ones(sizeX[1]), np.ones(sizeX[1])], axis=0)
+    Z2 = np.append(y3, [np.ones(sizeX[1]), np.ones(sizeX[1])], axis=0)
 
     xz = []
     xy = []
@@ -648,7 +636,7 @@ if __name__ == '__main__':
                               np.array(dBayess2)[[0, 2]], "Robbins: dif B", "Bayes", "--", c, iters)
     resd2 = [arrBorders2[0], arrBorders2[-1]]
     fig8 = printClassificator(fig8, 122, x3, y3,resd2, np.array(dBayess2)[[0, 2]], "Bayes", "Robbins: dif B",
-                              "--", ['y', 'y'], ["", f"{len(arrBorders2)-1}", f"{len(arrBorders2)-1}"])
+                              "--", ['y', 'y'], ["", f"{len(arrBorders2)-1}"])
 
     Fisher_errs1 = calcErrors(x3, z3, W1, wn1)
     MSE_errs1 = calcErrors(x3, z3, Wmse1[0:-1], Wmse1[-1])
