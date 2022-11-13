@@ -10,6 +10,8 @@ from sklearn import svm
 N = 100
 n = 2
 eps = 1e-5
+d = 3
+coef = -0.5
 
 M1 = [0, 0]
 M2 = [1, 1]
@@ -117,12 +119,12 @@ def viewFig(fig, classes, pos, name, borderNames, SVC, SVM_labels, qp_supVectors
 
         svcErrs = 0
         cntErrs = 0
+        zz = np.matmul(W, dataset) + wn
+        svc_zz = SVC.decision_function(dataset.T)
         for i in range(0, len(arr_r)):
-            zz = np.matmul(W, dataset[:, i]) + wn
-            svc_zz = SVC.decision_function([dataset[:, i]])
-            if ((zz < 0) & (arr_r[i] == 1)) | ((zz > 0) & (arr_r[i] == -1)):
+            if ((zz[i] < 0) & (arr_r[i] == 1)) | ((zz[i] > 0) & (arr_r[i] == -1)):
                 cntErrs += 1
-            if ((svc_zz < 0) & (arr_r[i] == 1)) | ((svc_zz > 0) & (arr_r[i] == -1)):
+            if ((svc_zz[i] < 0) & (arr_r[i] == 1)) | ((svc_zz[i] > 0) & (arr_r[i] == -1)):
                 svcErrs += 1
         print(f"My {name}\thas {cntErrs} errors classification ({100 * cntErrs / len(arr_r):.2f}%)")
         print(f"Python {name}\thas {svcErrs} errors classification ({100 * svcErrs / len(arr_r):.2f}%)\n")
@@ -135,8 +137,10 @@ def viewFig(fig, classes, pos, name, borderNames, SVC, SVM_labels, qp_supVectors
         wn = calcW_not_lin(dataset, arr_r, limbs, supX=qp_supVectors,
                            kernel=kwargs["params"]["kernel"], p=kwargs["params"])
         ZZ = ZZ.reshape(XX.shape) + wn
-        hand = plt.contour(XX, YY, ZZ, colors='m', levels=[0], alpha=0.3, linestyles=['-'])
-        legend2 = getContourLabel(hand, [borderNames[0]], [0], 3)
+        # hand = plt.contour(XX, YY, ZZ, colors='m', levels=[0], alpha=0.3, linestyles=['-'])
+        # legend2 = getContourLabel(hand, [borderNames[0]], [0], 3)
+        hand = plt.contour(XX, YY, ZZ, colors='m', levels=[-1, 0, 1], alpha=0.3, linestyles=['--', '-', '--'])
+        legend2 = getContourLabel(hand, borderNames, [-1, 0, 1], 3)
 
         # классы здесь есть, массив r есть, wn есть
         # функция для классификации
@@ -149,7 +153,7 @@ def viewFig(fig, classes, pos, name, borderNames, SVC, SVM_labels, qp_supVectors
                 zz += limbs[j] * arr_r[j] * kernelFunc(dataset[:, j], dataset[:, i], p=kwargs["params"])
             zz += wn
             # print(arr_r[i], zz)
-            if ((zz < 0)&(arr_r[i] == 1))|((zz > 0)&(arr_r[i] == -1)):
+            if ((zz < 0)&(arr_r[i] == 1)) | ((zz > 0)&(arr_r[i] == -1)):
                 cntErrs += 1
             if ((svc_zz < 0) & (arr_r[i] == 1)) | ((svc_zz > 0) & (arr_r[i] == -1)):
                 svcErrs += 1
@@ -188,7 +192,7 @@ def analiseSVMkernels(Cs, X, y, kernParam, classes, kernelname, qp_supVectors,
         fig3 = plt.figure(figsize=(7, 7))
         fig3 = viewFig(fig3, classes, 111, f"SVC {kernelname} with C:{Cs[i]}",
                        ["SVM quadprog", "SVM qp range"], svc_kernel,
-                       [f"SVC {kernelname} range", f"SVC {kernelname}"], qp_supVectors[i],
+                       [f"SVC {kernelname}", f"SVC {kernelname} range"], qp_supVectors[i],
                        Type, limbs[i], params=kwargs)
     print("="*100 + "\n")
     show()
@@ -284,11 +288,11 @@ if __name__ == '__main__':
     D = 1 / (2 * xTrain.var())
 
     K_limbs = {"lin": [], "poly0": [], "poly1": [], "rad": [], "radGauss": [], "sigmoid": []}
-    Pxz_poly0 = calculate_P_matrix(datasetXZ, vector_r, kernel_func=K_poly0, d=3)
-    Pxz_poly1 = calculate_P_matrix(datasetXZ, vector_r, kernel_func=K_poly1, d=3)
+    Pxz_poly0 = calculate_P_matrix(datasetXZ, vector_r, kernel_func=K_poly0, d=d)
+    Pxz_poly1 = calculate_P_matrix(datasetXZ, vector_r, kernel_func=K_poly1, d=d)
     Pxz_rad = calculate_P_matrix(datasetXZ, vector_r, kernel_func=K_rad, gamma=1)
     Pxz_radGauss = calculate_P_matrix(datasetXZ, vector_r, kernel_func=K_radGauss, gamma=D)
-    Pxz_sigmoid = calculate_P_matrix(datasetXZ, vector_r, kernel_func=K_sigmoid, gamma=0.5, c=-0.01)
+    Pxz_sigmoid = calculate_P_matrix(datasetXZ, vector_r, kernel_func=K_sigmoid, gamma=0.2, c=coef)  # с брать < -2
     supVectorsXZ = []
     for i in range(0, len(C)):
         h_withC = np.concatenate((h, C[i] * np.ones(2 * N)))
@@ -297,9 +301,7 @@ if __name__ == '__main__':
         K_limbs["poly1"].append(cvxopt_solve_qp(P=Pxz_poly1, q=q, G=G_withC, h=h_withC, A=A, b=b))
         K_limbs["rad"].append(cvxopt_solve_qp(P=Pxz_rad, q=q, G=G_withC, h=h_withC, A=A, b=b))
         K_limbs["radGauss"].append(cvxopt_solve_qp(P=Pxz_radGauss, q=q, G=G_withC, h=h_withC, A=A, b=b))
-        # !!! пишет, что при такой матрице функция не выпуклая
-        K_limbs["sigmoid"].append(cvxopt_solve_qp(P=Pxz_poly0, q=q, G=G_withC, h=h_withC, A=A, b=b))
-        # K_limbs["sigmoid"].append(osqp_solve_qp(P=Pxz_sigmoid, q=q, G=G_withC, h=h_withC, A=A, b=b, max_iter=50000))
+        K_limbs["sigmoid"].append(cvxopt_solve_qp(P=Pxz_sigmoid, q=q, G=G_withC, h=h_withC, A=A, b=b))
 
     print("Good")
 
@@ -334,26 +336,26 @@ if __name__ == '__main__':
 
     # task 4
     # kernel, gamma, coef0, degree
-    # dict_params = {"kernel": "poly", "gamma": "scale", "coef0": 0.0, "degree": 3}
+    # dict_params = {"kernel": "poly", "gamma": "scale", "coef0": 0.0, "degree": d}
     # analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z], "polynomial", support_vectors[1],
-    #                   "poly0", K_limbs["poly0"], d=3, kernel=K_poly0)
+    #                   "poly0", K_limbs["poly0"], d=d, kernel=K_poly0)
     #
-    # dict_params = {"kernel": "poly", "gamma": "scale", "coef0": 1.0, "degree": 3}
+    # dict_params = {"kernel": "poly", "gamma": "scale", "coef0": 1.0, "degree": d}
     # analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z], "polynomial not simple", support_vectors[2],
-    #                   "poly1", K_limbs["poly1"], d=3, kernel=K_poly1)
+    #                   "poly1", K_limbs["poly1"], d=d, kernel=K_poly1)
     #
     # # "scale" = 1/(n_features * X.var()) , "auto" = 1/n_features
-    # dict_params = {"kernel": "rbf", "gamma": 1.0, "coef0": 0.0, "degree": 3}
+    # dict_params = {"kernel": "rbf", "gamma": 1.0, "coef0": 0.0, "degree": d}
     # analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z], "radiance func", support_vectors[3],
     #                   "rad", K_limbs["rad"], gamma=1, kernel=K_rad)
     #
-    # dict_params = {"kernel": "rbf", "gamma": D, "coef0": 0.0, "degree": 3}
+    # dict_params = {"kernel": "rbf", "gamma": D, "coef0": 0.0, "degree": d}
     # analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z], "radiance func Gauss", support_vectors[4],
     #                   "rad Gauss", K_limbs["radGauss"], gamma=D, kernel=K_radGauss)
 
-    dict_params = {"kernel": "sigmoid", "gamma": 0.5, "coef0": -0.01, "degree": 3}
+    dict_params = {"kernel": "sigmoid", "gamma": 0.2, "coef0": coef, "degree": d}
     analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z], "sigmoid", support_vectors[5],
-                      "sigmoid", K_limbs["sigmoid"], gamma=0.5, c=-0.01, kernel=K_sigmoid)
+                      "sigmoid", K_limbs["sigmoid"], gamma=0.2, c=coef, kernel=K_sigmoid)
 
     # параметр C - это компромисс между шириной допустимой полосы и ошибок
     # из рисунков видно, что при увеличении С уменьшается ширина полосы -> в полосе остаются только более значимые
