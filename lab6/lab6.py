@@ -120,7 +120,7 @@ def viewFig(fig, classes, pos, name, borderNames, SVC, SVM_labels, qp_supVectors
             zz = np.matmul(W, dataset[:, i]) + wn
             if ((zz < 0) & (arr_r[i] == 1)) | ((zz > 0) & (arr_r[i] == -1)):
                 cntErrs += 1
-        print(f"{name} has {cntErrs} errors classification ({100 * cntErrs / len(arr_r):.2f}%)")
+        print(f"{name}\thas {cntErrs} errors classification ({100 * cntErrs / len(arr_r):.2f}%)")
     else:
         kernelFunc = kwargs["params"]["kernel"]
         ZZ = np.zeros(len(xy))
@@ -290,7 +290,6 @@ if __name__ == '__main__':
     print("Good")
 
     # расчет опорных векторов для всех случаев
-    print(np.shape(K_limbs["poly0"]), len(K_limbs))
     support_vectors = []
     for value in K_limbs.values():  # for each kernel    K_limbs = dict{ [ [],[],[],[] ] x6}
         K_support = []
@@ -321,9 +320,9 @@ if __name__ == '__main__':
 
     # task 4
     # kernel, gamma, coef0, degree
-    dict_params = {"kernel": "poly", "gamma": "scale", "coef0": 0.0, "degree": 3}
-    analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z], "polynomial", support_vectors[1],
-                      "poly0", K_limbs["poly0"], d=3, kernel=K_poly0)
+    # dict_params = {"kernel": "poly", "gamma": "scale", "coef0": 0.0, "degree": 3}
+    # analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z], "polynomial", support_vectors[1],
+    #                   "poly0", K_limbs["poly0"], d=3, kernel=K_poly0)
     #
     # dict_params = {"kernel": "poly", "gamma": "scale", "coef0": 1.0, "degree": 3}
     # analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z], "polynomial not simple", support_vectors[2],
