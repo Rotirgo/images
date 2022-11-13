@@ -52,7 +52,6 @@ def calcW(x, r, l):
 
 
 def calcW_not_lin(x, r, l, **kwargs):
-    J = l[l > eps]
     supps = np.transpose(kwargs["supX"])
     wn = 0
     cnt = -1
@@ -63,7 +62,7 @@ def calcW_not_lin(x, r, l, **kwargs):
             for j in range(0, len(r)):
                 w_x += l[j] * r[j] * kwargs["kernel"](x=x[:, j], y=supps[cnt], p=kwargs["p"])
             wn += r[i] - w_x
-    wn /= len(J)
+    wn /= (cnt + 1)
     return wn
 
 
@@ -90,7 +89,6 @@ def getContourLabel(contour, names, levels, loc):
     return legend
 
 
-# borders -> параметры для расчета поверхностей (Type, dataset, arr_r, limbs, kernelFunc, **kwargs)
 def viewFig(fig, classes, pos, name, borderNames, SVC, SVM_labels, qp_supVectors, Type, limbs, **kwargs):
     fig.add_subplot(pos)
     plt.title(f"{name}")
@@ -116,6 +114,13 @@ def viewFig(fig, classes, pos, name, borderNames, SVC, SVM_labels, qp_supVectors
         ZZ = (Wx + wn).reshape(XX.shape)
         hand = plt.contour(XX, YY, ZZ, colors='m', levels=[-1, 0, 1], alpha=0.3, linestyles=['--', '-', '--'])
         legend2 = getContourLabel(hand, borderNames, [-1, 0, 1], 3)
+
+        cntErrs = 0
+        for i in range(0, len(arr_r)):
+            zz = np.matmul(W, dataset[:, i]) + wn
+            if ((zz < 0) & (arr_r[i] == 1)) | ((zz > 0) & (arr_r[i] == -1)):
+                cntErrs += 1
+        print(f"{name} has {cntErrs} errors classification ({100 * cntErrs / len(arr_r):.2f}%)")
     else:
         kernelFunc = kwargs["params"]["kernel"]
         ZZ = np.zeros(len(xy))
@@ -124,10 +129,22 @@ def viewFig(fig, classes, pos, name, borderNames, SVC, SVM_labels, qp_supVectors
                 ZZ[i] += limbs[j]*arr_r[j]*kernelFunc(dataset[:, j], xy[i], p=kwargs["params"])
         wn = calcW_not_lin(dataset, arr_r, limbs, supX=qp_supVectors,
                            kernel=kwargs["params"]["kernel"], p=kwargs["params"])
-        print(wn)
         ZZ = ZZ.reshape(XX.shape) + wn
         hand = plt.contour(XX, YY, ZZ, colors='m', levels=[0], alpha=0.3, linestyles=['-'])
         legend2 = getContourLabel(hand, [borderNames[0]], [0], 3)
+
+        # классы здесь есть, массив r есть, wn есть
+        # функция для классификации
+        cntErrs = 0
+        for i in range(0, len(arr_r)):
+            zz = 0
+            for j in range(0, len(arr_r)):
+                zz += limbs[j] * arr_r[j] * kernelFunc(dataset[:, j], dataset[:, i], p=kwargs["params"])
+            zz += wn
+            # print(arr_r[i], zz)
+            if ((zz < 0)&(arr_r[i] == 1))|((zz > 0)&(arr_r[i] == -1)):
+                cntErrs += 1
+        print(f"{name} has {cntErrs} errors classification ({100*cntErrs/len(arr_r):.2f}%)")
 
 
     # plot support vectors
@@ -162,15 +179,8 @@ def analiseSVMkernels(Cs, X, y, kernParam, classes, kernelname, qp_supVectors,
                        ["SVM quadprog", "SVM qp range"], svc_kernel,
                        [f"SVC {kernelname} range", f"SVC {kernelname}"], qp_supVectors[i],
                        Type, limbs[i], params=kwargs)
+    print("\n")
     show()
-
-
-def border_and_range(w, Wn):
-    t = np.linspace(-5, 5, 100)
-    border = lab1.borderLinClassificator(w, Wn, t, "SVM")
-    border_up = lab1.borderLinClassificator(w, (Wn + 1), t, "SVM")
-    border_low = lab1.borderLinClassificator(w, (Wn - 1), t, "SVM")
-    return border, border_up, border_low
 
 
 def K_poly0(x, y, **kwargs):
@@ -239,7 +249,6 @@ if __name__ == '__main__':
     W, wn = calcW(datasetXY, vector_r, ls)
     supVectorsXY = getSupportVectors(ls, datasetXY)
     t = np.linspace(-5, 5, 100)
-    border_qp = border_and_range(W, wn)
 
     yTrain = np.zeros(2*N)
     yTrain[N:2*N] = np.ones(N)
@@ -297,7 +306,6 @@ if __name__ == '__main__':
     for i in range(0, len(C)):
         W2, wn2 = calcW(datasetXZ, vector_r, K_limbs["lin"][i])
         supVectorsXZ.append(getSupportVectors(K_limbs["lin"][i], datasetXZ))
-        border_qp = border_and_range(W2, wn2)
 
         xTrain = datasetXZ.T
         svc2 = svm.SVC(kernel='linear', C=C[i])
@@ -308,13 +316,14 @@ if __name__ == '__main__':
         fig2 = viewFig(fig2, [x, z], 121+(i % 2), f"SVC borders with C:{C[i]}",
                        ["SVM quadprog", "SVM qp range"], svc2, ["SVC range", "SVC"], supVectorsXZ[i],
                        "lin", K_limbs["lin"][i])
+    print("\n")
     # show()
 
     # task 4
     # kernel, gamma, coef0, degree
-    # dict_params = {"kernel": "poly", "gamma": "scale", "coef0": 0.0, "degree": 3}
-    # analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z], "polynomial", support_vectors[1],
-    #                   "poly0", K_limbs["poly0"], d=3, kernel=K_poly0)
+    dict_params = {"kernel": "poly", "gamma": "scale", "coef0": 0.0, "degree": 3}
+    analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z], "polynomial", support_vectors[1],
+                      "poly0", K_limbs["poly0"], d=3, kernel=K_poly0)
     #
     # dict_params = {"kernel": "poly", "gamma": "scale", "coef0": 1.0, "degree": 3}
     # analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z], "polynomial not simple", support_vectors[2],
