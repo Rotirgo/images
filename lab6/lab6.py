@@ -3,7 +3,6 @@ from matplotlib import pyplot as plt
 from skimage.io import show
 import lab1_2_4.lab124 as lab1
 from scipy.sparse import csc_matrix
-from qpsolvers.solvers.osqp_ import osqp_solve_qp
 from qpsolvers.solvers.cvxopt_ import cvxopt_solve_qp
 from sklearn import svm
 
@@ -336,22 +335,22 @@ if __name__ == '__main__':
 
     # task 4
     # kernel, gamma, coef0, degree
-    # dict_params = {"kernel": "poly", "gamma": "scale", "coef0": 0.0, "degree": d}
-    # analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z], "polynomial", support_vectors[1],
-    #                   "poly0", K_limbs["poly0"], d=d, kernel=K_poly0)
-    #
-    # dict_params = {"kernel": "poly", "gamma": "scale", "coef0": 1.0, "degree": d}
-    # analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z], "polynomial not simple", support_vectors[2],
-    #                   "poly1", K_limbs["poly1"], d=d, kernel=K_poly1)
-    #
-    # # "scale" = 1/(n_features * X.var()) , "auto" = 1/n_features
-    # dict_params = {"kernel": "rbf", "gamma": 1.0, "coef0": 0.0, "degree": d}
-    # analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z], "radiance func", support_vectors[3],
-    #                   "rad", K_limbs["rad"], gamma=1, kernel=K_rad)
-    #
-    # dict_params = {"kernel": "rbf", "gamma": D, "coef0": 0.0, "degree": d}
-    # analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z], "radiance func Gauss", support_vectors[4],
-    #                   "rad Gauss", K_limbs["radGauss"], gamma=D, kernel=K_radGauss)
+    dict_params = {"kernel": "poly", "gamma": "scale", "coef0": 0.0, "degree": d}
+    analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z], "polynomial", support_vectors[1],
+                      "poly0", K_limbs["poly0"], d=d, kernel=K_poly0)
+
+    dict_params = {"kernel": "poly", "gamma": "scale", "coef0": 1.0, "degree": d}
+    analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z], "polynomial not simple", support_vectors[2],
+                      "poly1", K_limbs["poly1"], d=d, kernel=K_poly1)
+
+    # "scale" = 1/(n_features * X.var()) , "auto" = 1/n_features
+    dict_params = {"kernel": "rbf", "gamma": 1.0, "coef0": 0.0, "degree": d}
+    analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z], "radiance func", support_vectors[3],
+                      "rad", K_limbs["rad"], gamma=1, kernel=K_rad)
+
+    dict_params = {"kernel": "rbf", "gamma": D, "coef0": 0.0, "degree": d}
+    analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z], "radiance func Gauss", support_vectors[4],
+                      "rad Gauss", K_limbs["radGauss"], gamma=D, kernel=K_radGauss)
 
     dict_params = {"kernel": "sigmoid", "gamma": 0.2, "coef0": coef, "degree": d}
     analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z], "sigmoid", support_vectors[5],
