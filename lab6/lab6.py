@@ -115,12 +115,17 @@ def viewFig(fig, classes, pos, name, borderNames, SVC, SVM_labels, qp_supVectors
         hand = plt.contour(XX, YY, ZZ, colors='m', levels=[-1, 0, 1], alpha=0.3, linestyles=['--', '-', '--'])
         legend2 = getContourLabel(hand, borderNames, [-1, 0, 1], 3)
 
+        svcErrs = 0
         cntErrs = 0
         for i in range(0, len(arr_r)):
             zz = np.matmul(W, dataset[:, i]) + wn
+            svc_zz = SVC.decision_function([dataset[:, i]])
             if ((zz < 0) & (arr_r[i] == 1)) | ((zz > 0) & (arr_r[i] == -1)):
                 cntErrs += 1
-        print(f"{name}\thas {cntErrs} errors classification ({100 * cntErrs / len(arr_r):.2f}%)")
+            if ((svc_zz < 0) & (arr_r[i] == 1)) | ((svc_zz > 0) & (arr_r[i] == -1)):
+                svcErrs += 1
+        print(f"My {name}\thas {cntErrs} errors classification ({100 * cntErrs / len(arr_r):.2f}%)")
+        print(f"Python {name}\thas {svcErrs} errors classification ({100 * svcErrs / len(arr_r):.2f}%)\n")
     else:
         kernelFunc = kwargs["params"]["kernel"]
         ZZ = np.zeros(len(xy))
@@ -136,15 +141,21 @@ def viewFig(fig, classes, pos, name, borderNames, SVC, SVM_labels, qp_supVectors
         # классы здесь есть, массив r есть, wn есть
         # функция для классификации
         cntErrs = 0
+        svcErrs = 0
         for i in range(0, len(arr_r)):
             zz = 0
+            svc_zz = SVC.decision_function([dataset[:, i]])
             for j in range(0, len(arr_r)):
                 zz += limbs[j] * arr_r[j] * kernelFunc(dataset[:, j], dataset[:, i], p=kwargs["params"])
             zz += wn
             # print(arr_r[i], zz)
             if ((zz < 0)&(arr_r[i] == 1))|((zz > 0)&(arr_r[i] == -1)):
                 cntErrs += 1
-        print(f"{name} has {cntErrs} errors classification ({100*cntErrs/len(arr_r):.2f}%)")
+            if ((svc_zz < 0) & (arr_r[i] == 1)) | ((svc_zz > 0) & (arr_r[i] == -1)):
+                svcErrs += 1
+        print(f"My {name} has {cntErrs} errors classification ({100*cntErrs/len(arr_r):.2f}%)")
+        print(f"Python {name}\thas {svcErrs} errors classification ({100 * svcErrs / len(arr_r):.2f}%)\n")
+
 
 
     # plot support vectors
@@ -316,7 +327,7 @@ if __name__ == '__main__':
                        ["SVM quadprog", "SVM qp range"], svc2, ["SVC range", "SVC"], supVectorsXZ[i],
                        "lin", K_limbs["lin"][i])
     print("\n")
-    # show()
+    show()
 
     # task 4
     # kernel, gamma, coef0, degree
