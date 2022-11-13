@@ -52,20 +52,19 @@ def calcW(x, r, l):
 
 
 def calcW_not_lin(x, r, l, **kwargs):
-    arrW = []
-    for vect in np.transpose(kwargs["supX"]):
-        wx = 0
-        for i in range(0, len(r)):
-            wx += r[i] * l[i] * kwargs["kernel"](x=x[:, i], y=vect, p=kwargs)
-        arrW.append(wx)
-    print(arrW)
     J = l[l > eps]
+    supps = np.transpose(kwargs["supX"])
     wn = 0
-    for i in range(0, len(J)):
-        idx = list(l).index(J[i])
-        wn += r[idx] - arrW[i]
+    cnt = -1
+    for i in range(0, len(l)):
+        if l[i] > eps:
+            cnt += 1
+            w_x = 0
+            for j in range(0, len(r)):
+                w_x += l[j] * r[j] * kwargs["kernel"](x=x[:, j], y=supps[cnt], p=kwargs["p"])
+            wn += r[i] - w_x
     wn /= len(J)
-    return [1, 1], 0
+    return wn
 
 
 def getSupportVectors(lymbs, dataset):
@@ -79,18 +78,30 @@ def getSupportVectors(lymbs, dataset):
     return np.transpose(sup_vectors)
 
 
+def getContourLabel(contour, names, levels, loc):
+    artists, labels = contour.legend_elements()
+    custom_labels = []
+    for level, contour in zip(levels, contour.collections):
+        custom_labels.append(f'{names[level % 2]}')
+    if len(names) > 1:
+        legend = plt.legend(artists[0:-1], custom_labels[0:-1], loc=loc)
+    else:
+        legend = plt.legend(artists, custom_labels, loc=loc)
+    return legend
+
+
 # borders -> параметры для расчета поверхностей (Type, dataset, arr_r, limbs, kernelFunc, **kwargs)
 def viewFig(fig, classes, pos, name, borderNames, SVC, SVM_labels, qp_supVectors, Type, limbs, **kwargs):
     fig.add_subplot(pos)
     plt.title(f"{name}")
-    xlim = plt.xlim(-2, 3)
-    ylim = plt.ylim(-2, 3)
+    plt.xlim(-2, 3)
+    plt.ylim(-2, 3)
     plt.plot(classes[0][0], classes[0][1], 'r+', label="class 0")
     plt.plot(classes[1][0], classes[1][1], 'bx', label="class 1")
 
     # create grid to evaluate model
-    xx = np.linspace(-5, 5, 200)
-    yy = np.linspace(-5, 5, 200)
+    xx = np.linspace(-2, 3, 50)
+    yy = np.linspace(-2, 3, 50)
     YY, XX = np.meshgrid(yy, xx)
     xy = np.vstack([XX.ravel(), YY.ravel()]).T
     Z0 = SVC.decision_function(xy).reshape(XX.shape)
@@ -101,17 +112,23 @@ def viewFig(fig, classes, pos, name, borderNames, SVC, SVM_labels, qp_supVectors
     arr_r[0:N] *= -1
     if Type == "lin":
         W, wn = calcW(dataset, arr_r, limbs)
-        borders = border_and_range(W, wn)
+        Wx = np.matmul(W, xy.T)
+        ZZ = (Wx + wn).reshape(XX.shape)
+        hand = plt.contour(XX, YY, ZZ, colors='m', levels=[-1, 0, 1], alpha=0.3, linestyles=['--', '-', '--'])
+        legend2 = getContourLabel(hand, borderNames, [-1, 0, 1], 3)
     else:
-        W, wn = calcW_not_lin(dataset, arr_r, limbs, supX=qp_supVectors, kernel=kwargs["kernel"], p=kwargs)
-        borders = 0
-    # ZZ =
+        kernelFunc = kwargs["params"]["kernel"]
+        ZZ = np.zeros(len(xy))
+        for i in range(0, len(xy)):
+            for j in range(0, len(arr_r)):
+                ZZ[i] += limbs[j]*arr_r[j]*kernelFunc(dataset[:, j], xy[i], p=kwargs["params"])
+        wn = calcW_not_lin(dataset, arr_r, limbs, supX=qp_supVectors,
+                           kernel=kwargs["params"]["kernel"], p=kwargs["params"])
+        print(wn)
+        ZZ = ZZ.reshape(XX.shape) + wn
+        hand = plt.contour(XX, YY, ZZ, colors='m', levels=[0], alpha=0.3, linestyles=['-'])
+        legend2 = getContourLabel(hand, [borderNames[0]], [0], 3)
 
-    plt.plot(borders[0][0], borders[0][1], 'm-', label=borderNames[0], alpha=0.5)
-
-    # ширина полосы при квадратичном программировании
-    plt.plot(borders[1][0], borders[1][1], 'm--', label=borderNames[1], alpha=0.3)
-    plt.plot(borders[2][0], borders[2][1], 'm--', alpha=0.3)
 
     # plot support vectors
     if isinstance(SVC, type(svm.SVC())):
@@ -122,20 +139,21 @@ def viewFig(fig, classes, pos, name, borderNames, SVC, SVM_labels, qp_supVectors
     legend1 = plt.legend(loc=1)
 
     # plot decision boundary and margins
-    CS = plt.contour(XX, YY, Z0, colors='green', levels=[-1, 0, 1], alpha=0.3, linestyles=['--', '-', '--'])
+    CS = plt.contour(XX, YY, Z0, colors='green', levels=[-1, 0, 1], alpha=0.3,
+                     linestyles=['--', '-', '--'])
     artists, labels = CS.legend_elements()
     custom_labels = []
     for level, contour in zip([-1, 0, 1], CS.collections):
         custom_labels.append(f'{SVM_labels[level%2]}')
     plt.legend(artists[0:-1], custom_labels[0:-1], loc="upper left")
     plt.gca().add_artist(legend1)
+    plt.gca().add_artist(legend2)
     return fig
 
 
-def analiseSVMkernels(Cs, X, y, kernParam, classes, borders, kernelname, qp_supVectors,
+def analiseSVMkernels(Cs, X, y, kernParam, classes, kernelname, qp_supVectors,
                       Type, limbs, **kwargs):
     for i in range(len(Cs) - 1, -1, -1):
-        #
         svc_kernel = svm.SVC(kernel=kernParam["kernel"], gamma=kernParam["gamma"],
                              coef0=kernParam["coef0"], degree=kernParam["degree"], C=Cs[i])
         svc_kernel.fit(X=X, y=y)
@@ -143,7 +161,7 @@ def analiseSVMkernels(Cs, X, y, kernParam, classes, borders, kernelname, qp_supV
         fig3 = viewFig(fig3, classes, 111, f"SVC {kernelname} with C:{Cs[i]}",
                        ["SVM quadprog", "SVM qp range"], svc_kernel,
                        [f"SVC {kernelname} range", f"SVC {kernelname}"], qp_supVectors[i],
-                       Type, limbs, params=kwargs)
+                       Type, limbs[i], params=kwargs)
     show()
 
 
@@ -172,9 +190,9 @@ def K_rad(x, y, **kwargs):
     return K
 
 def K_radGauss(x, y, **kwargs):
-    D = kwargs["p"]["D"]
+    D = kwargs["p"]["gamma"]
     dif = x - y
-    K = np.exp(-0.5 * np.dot(dif, dif) / D)
+    K = np.exp(-D * np.dot(dif, dif))
     return K
 
 def K_sigmoid(x, y, **kwargs):
@@ -243,12 +261,14 @@ if __name__ == '__main__':
     Pxz = calculate_P_matrix(datasetXZ, vector_r, kernel_func=np.dot)
     G_withC = np.concatenate((G, np.eye(2 * N)), axis=0)
 
+    D = 1 / (2 * xTrain.var())
+
     K_limbs = {"lin": [], "poly0": [], "poly1": [], "rad": [], "radGauss": [], "sigmoid": []}
     Pxz_poly0 = calculate_P_matrix(datasetXZ, vector_r, kernel_func=K_poly0, d=3)
     Pxz_poly1 = calculate_P_matrix(datasetXZ, vector_r, kernel_func=K_poly1, d=3)
     Pxz_rad = calculate_P_matrix(datasetXZ, vector_r, kernel_func=K_rad, gamma=1)
-    Pxz_radGauss = calculate_P_matrix(datasetXZ, vector_r, kernel_func=K_radGauss, D=1)
-    Pxz_sigmoid = calculate_P_matrix(datasetXZ, vector_r, kernel_func=K_sigmoid, gamma=1, c=-0.01)
+    Pxz_radGauss = calculate_P_matrix(datasetXZ, vector_r, kernel_func=K_radGauss, gamma=D)
+    Pxz_sigmoid = calculate_P_matrix(datasetXZ, vector_r, kernel_func=K_sigmoid, gamma=0.5, c=-0.01)
     supVectorsXZ = []
     for i in range(0, len(C)):
         h_withC = np.concatenate((h, C[i] * np.ones(2 * N)))
@@ -288,34 +308,33 @@ if __name__ == '__main__':
         fig2 = viewFig(fig2, [x, z], 121+(i % 2), f"SVC borders with C:{C[i]}",
                        ["SVM quadprog", "SVM qp range"], svc2, ["SVC range", "SVC"], supVectorsXZ[i],
                        "lin", K_limbs["lin"][i])
-    show()
+    # show()
 
     # task 4
     # kernel, gamma, coef0, degree
     # dict_params = {"kernel": "poly", "gamma": "scale", "coef0": 0.0, "degree": 3}
-    # border_poly0 = []
-    # for i in range(0, len(C)):
-    #     border_poly0.append(calcW_not_lin(datasetXZ, vector_r, K_limbs["poly0"][i],
-    #                                       supX=support_vectors[1][i], kernel=K_poly0, d=3))
-    # analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z],
-    #                   [borderXZ, borderXZ_up, borderXZ_low], "polynomial", support_vectors[0])
+    # analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z], "polynomial", support_vectors[1],
+    #                   "poly0", K_limbs["poly0"], d=3, kernel=K_poly0)
     #
     # dict_params = {"kernel": "poly", "gamma": "scale", "coef0": 1.0, "degree": 3}
-    # analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z],
-    #                   [borderXZ, borderXZ_up, borderXZ_low], "polynomial not simple", support_vectors[1])
+    # analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z], "polynomial not simple", support_vectors[2],
+    #                   "poly1", K_limbs["poly1"], d=3, kernel=K_poly1)
     #
     # # "scale" = 1/(n_features * X.var()) , "auto" = 1/n_features
-    # dict_params = {"kernel": "rbf", "gamma": "scale", "coef0": 0.0, "degree": 3}
-    # analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z],
-    #                   [borderXZ, borderXZ_up, borderXZ_low], "radiance func", support_vectors[2])
+    # dict_params = {"kernel": "rbf", "gamma": 1.0, "coef0": 0.0, "degree": 3}
+    # analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z], "radiance func", support_vectors[3],
+    #                   "rad", K_limbs["rad"], gamma=1, kernel=K_rad)
     #
-    # D = 2*xTrain.var()
-    # dict_params = {"kernel": "rbf", "gamma": 1 / D, "coef0": 0.0, "degree": 3}
-    # analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z],
-    #                   [borderXZ, borderXZ_up, borderXZ_low], "radiance func Gauss", support_vectors[3])
-    #
-    # dict_params = {"kernel": "sigmoid", "gamma": 0.5, "coef0": -0.01, "degree": 3}
-    # analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z],
-    #                   [borderXZ, borderXZ_up, borderXZ_low], "sigmoid", support_vectors[4])
+    # dict_params = {"kernel": "rbf", "gamma": D, "coef0": 0.0, "degree": 3}
+    # analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z], "radiance func Gauss", support_vectors[4],
+    #                   "rad Gauss", K_limbs["radGauss"], gamma=D, kernel=K_radGauss)
+
+    dict_params = {"kernel": "sigmoid", "gamma": 0.5, "coef0": -0.01, "degree": 3}
+    analiseSVMkernels(C, xTrain, yTrain, dict_params, [x, z], "sigmoid", support_vectors[5],
+                      "sigmoid", K_limbs["sigmoid"], gamma=0.5, c=-0.01, kernel=K_sigmoid)
+
+    # параметр C - это компромисс между шириной допустимой полосы и ошибок
+    # из рисунков видно, что при увеличении С уменьшается ширина полосы -> в полосе остаются только более значимые
+    # опорные вектора -> граница должна строиться лучше -> возможно уменьшение ошибочной классификации
 
     print("Wow! It is work!")
