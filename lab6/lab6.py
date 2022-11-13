@@ -4,7 +4,7 @@ from skimage.io import show
 import lab1_2_4.lab124 as lab1
 from scipy.sparse import csc_matrix
 from qpsolvers.solvers.osqp_ import osqp_solve_qp
-from qpsolvers.solvers.cvxopt_ import cvxopt_solve_qp  # попробовать с эти qp
+from qpsolvers.solvers.cvxopt_ import cvxopt_solve_qp
 from sklearn import svm
 
 N = 100
@@ -297,7 +297,10 @@ if __name__ == '__main__':
         K_limbs["poly1"].append(cvxopt_solve_qp(P=Pxz_poly1, q=q, G=G_withC, h=h_withC, A=A, b=b))
         K_limbs["rad"].append(cvxopt_solve_qp(P=Pxz_rad, q=q, G=G_withC, h=h_withC, A=A, b=b))
         K_limbs["radGauss"].append(cvxopt_solve_qp(P=Pxz_radGauss, q=q, G=G_withC, h=h_withC, A=A, b=b))
-        K_limbs["sigmoid"].append(cvxopt_solve_qp(P=Pxz_poly0, q=q, G=G_withC, h=h_withC, A=A, b=b))  # !!!
+        # !!! пишет, что при такой матрице функция не выпуклая
+        K_limbs["sigmoid"].append(cvxopt_solve_qp(P=Pxz_poly0, q=q, G=G_withC, h=h_withC, A=A, b=b))
+        # K_limbs["sigmoid"].append(osqp_solve_qp(P=Pxz_sigmoid, q=q, G=G_withC, h=h_withC, A=A, b=b, max_iter=50000))
+
     print("Good")
 
     # расчет опорных векторов для всех случаев
