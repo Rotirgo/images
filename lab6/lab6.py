@@ -190,7 +190,7 @@ def analiseSVMkernels(Cs, X, y, kernParam, classes, kernelname, qp_supVectors,
                        ["SVM quadprog", "SVM qp range"], svc_kernel,
                        [f"SVC {kernelname} range", f"SVC {kernelname}"], qp_supVectors[i],
                        Type, limbs[i], params=kwargs)
-    print("\n")
+    print("="*100 + "\n")
     show()
 
 
@@ -326,7 +326,7 @@ if __name__ == '__main__':
         fig2 = viewFig(fig2, [x, z], 121+(i % 2), f"SVC borders with C:{C[i]}",
                        ["SVM quadprog", "SVM qp range"], svc2, ["SVC range", "SVC"], supVectorsXZ[i],
                        "lin", K_limbs["lin"][i])
-    print("\n")
+    print("="*100 + "\n")
     show()
 
     # task 4
