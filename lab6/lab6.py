@@ -113,7 +113,7 @@ def viewFig(fig, classes, pos, name, borderNames, SVC, SVM_labels, qp_supVectors
         W, wn = calcW(dataset, arr_r, limbs)
         Wx = np.matmul(W, xy.T)
         ZZ = (Wx + wn).reshape(XX.shape)
-        hand = plt.contour(XX, YY, ZZ, colors='m', levels=[-1, 0, 1], alpha=0.3, linestyles=['--', '-', '--'])
+        hand = plt.contour(XX, YY, ZZ, colors='m', levels=[-1, 0, 1], alpha=0.4, linestyles=['--', '-', '--'])
         legend2 = getContourLabel(hand, borderNames, [-1, 0, 1], 3)
 
         svcErrs = 0
@@ -138,7 +138,7 @@ def viewFig(fig, classes, pos, name, borderNames, SVC, SVM_labels, qp_supVectors
         ZZ = ZZ.reshape(XX.shape) + wn
         # hand = plt.contour(XX, YY, ZZ, colors='m', levels=[0], alpha=0.3, linestyles=['-'])
         # legend2 = getContourLabel(hand, [borderNames[0]], [0], 3)
-        hand = plt.contour(XX, YY, ZZ, colors='m', levels=[-1, 0, 1], alpha=0.3, linestyles=['--', '-', '--'])
+        hand = plt.contour(XX, YY, ZZ, colors='m', levels=[-1, 0, 1], alpha=0.4, linestyles=['--', '-', '--'])
         legend2 = getContourLabel(hand, borderNames, [-1, 0, 1], 3)
 
         # классы здесь есть, массив r есть, wn есть
@@ -163,10 +163,10 @@ def viewFig(fig, classes, pos, name, borderNames, SVC, SVM_labels, qp_supVectors
 
     # plot support vectors
     if isinstance(SVC, type(svm.SVC())):
-        plt.scatter(SVC.support_vectors_[:, 0], SVC.support_vectors_[:, 1], s=90, linewidth=1, facecolors='none',
+        plt.scatter(SVC.support_vectors_[:, 0], SVC.support_vectors_[:, 1], s=70, linewidth=1, facecolors='none',
                     edgecolors='k', label="Support Vectors SVC", alpha=0.7)
-    plt.scatter(qp_supVectors[0], qp_supVectors[1], s=130, linewidth=1, facecolors='none',
-                edgecolors='orange', label="Support Vectors qp", alpha=0.5)
+    plt.scatter(qp_supVectors[0], qp_supVectors[1], s=150, linewidth=1, facecolors='none',
+                edgecolors='orange', label="Support Vectors qp", alpha=0.7)
     legend1 = plt.legend(loc=1)
 
     # plot decision boundary and margins
@@ -257,8 +257,6 @@ if __name__ == '__main__':
     A = csc_matrix(vector_r)
     b = np.array([0.0])
 
-    # не всегда находит решение из-за ограничения в количестве итераций
-    # запускать несколько раз
     ls = cvxopt_solve_qp(P=Pxy, q=q, G=G, h=h, A=A, b=b)
     W, wn = calcW(datasetXY, vector_r, ls)
     supVectorsXY = getSupportVectors(ls, datasetXY)
