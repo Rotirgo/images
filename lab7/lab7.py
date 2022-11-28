@@ -61,11 +61,7 @@ def K_neighbors_classificator(x, train_classes, K):
         r = np.concatenate([r, np.ones((size[1], ))*i])
 
     distances = Distance(all_vectors, x)
-    neighbors = []
-    for i in range(0, K):
-        idx_min = np.argmin(distances)
-        neighbors.append(idx_min)
-        distances[idx_min] = distances.max()
+    neighbors = distances.argpartition(K)[:K]
     neighbors_classes = list(r[neighbors])
     num_class = max(set(neighbors_classes), key=neighbors_classes.count)
     return int(num_class)
