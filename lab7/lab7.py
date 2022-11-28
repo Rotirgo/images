@@ -28,19 +28,8 @@ def Parzen_classificator(x, train_classes, train_B):
         P[i] = n_vectors
     P /= cnt
 
-    table = np.eye(n_classes).astype(bool)
-    for i in range(0, n_classes - 1):
-        for j in range(i + 1, n_classes):
-            if P[i] * f[i] >= P[j] * f[j]:
-                table[i][j] = True
-                table[j][i] = False
-            else:
-                table[i][j] = False
-                table[j][i] = True
-
-    for i in range(0, len(table)):
-        if (table[i] == np.ones(len(table)).astype(bool)).all():
-            return i
+    R = P*f
+    return np.argmax(R)
 
 
 def d(x, z):
